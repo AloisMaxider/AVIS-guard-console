@@ -15,6 +15,12 @@ import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 import FloatingAIChat from "./components/ai/FloatingAIChat";
 import CommandPalette from "./components/CommandPalette";
+import OrgAdmin from "./pages/admin/OrgAdmin";
+import SuperAdmin from "./pages/admin/SuperAdmin";
+import UserManagement from "./pages/admin/UserManagement";
+import Billing from "./pages/admin/Billing";
+import Organizations from "./pages/admin/Organizations";
+import SecurityLogs from "./pages/admin/SecurityLogs";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +46,12 @@ const App = () => (
           <Route path="/traps" element={<ProtectedRoute><Traps /></ProtectedRoute>} />
           <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/admin/org" element={<ProtectedRoute><OrgAdmin /></ProtectedRoute>} />
+          <Route path="/admin/super" element={<ProtectedRoute><SuperAdmin /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+          <Route path="/admin/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+          <Route path="/admin/organizations" element={<ProtectedRoute><Organizations /></ProtectedRoute>} />
+          <Route path="/admin/security-logs" element={<ProtectedRoute><SecurityLogs /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
