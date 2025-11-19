@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
+import LandingPage from "./pages/landingpage/LandingPage";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -55,6 +56,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -94,7 +96,6 @@ const App = () => (
           <Route path="/super-admin/features" element={<RoleBasedRoute requiredRole="super_admin"><FeatureFlagsPage /></RoleBasedRoute>} />
           <Route path="/super-admin/reseller" element={<RoleBasedRoute requiredRole="super_admin"><ResellerPortal /></RoleBasedRoute>} />
           
-          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <CommandPalette />
