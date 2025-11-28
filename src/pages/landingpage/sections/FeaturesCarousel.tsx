@@ -65,7 +65,7 @@ const FeaturesCarousel = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative py-16 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}

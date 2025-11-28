@@ -6,7 +6,7 @@ import AnimatedCounter from "../components/AnimatedCounter";
 
 const HeroSection = () => {
   const [text, setText] = useState("");
-  const fullText = "The Only Zabbix Platform That Predicts Outages Before They Happen";
+  const fullText = "The Only Platform That Predicts Outages Before They Happen";
   
   useEffect(() => {
     let index = 0;
@@ -32,7 +32,7 @@ const HeroSection = () => {
                  linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
                  linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px)
                `,
-               backgroundSize: '50px 50px',
+               backgroundSize: '100px 100px',
                animation: 'grid-flow 20s linear infinite'
              }} />
       </div>
@@ -69,7 +69,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8 }}
           className="mb-8"
         >
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold mt-12 mb-12 leading-tight">
             <span className="bg-gradient-to-r from-[#00f0ff] via-[#d900ff] to-[#ff006e] bg-clip-text text-transparent inline-block relative">
               {text}
               <span className="animate-pulse">|</span>
@@ -85,9 +85,9 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-xl md:text-2xl text-[#00f0ff] mb-12 font-light"
+          className="text-xl md:text-2xl text-[#00f0ff] mb-24 font-light"
         >
-          AI analyzes every problem in &lt;1 second · Auto-triage · Root cause · One-click fixes
+          Near-instant AI problem analysis · Auto-triage · Root cause · One-click fixes
         </motion.p>
 
         {/* CTAs */}

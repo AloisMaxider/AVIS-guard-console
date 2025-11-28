@@ -33,7 +33,7 @@ const Sidebar = () => {
             <Zap className="w-4 h-4 text-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-glow-primary">NebulaGuard</h1>
+            <h1 className="text-xl font-bold text-glow-primary">Jarvis</h1>
             <p className="text-xs text-muted-foreground">AI Monitoring</p>
           </div>
         </div>

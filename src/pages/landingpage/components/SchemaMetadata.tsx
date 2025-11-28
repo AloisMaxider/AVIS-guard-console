@@ -4,7 +4,7 @@ const SchemaMetadata = () => {
   const schema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "NebulaGuard",
+    "name": "Jarvis",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
     "offers": {
@@ -20,9 +20,9 @@ const SchemaMetadata = () => {
       }
     },
     "description": "AI-powered, real-time Zabbix monitoring platform that predicts outages before they happen. Analyze every problem in <1 second with auto-triage, root cause analysis, and one-click fixes.",
-    "url": "https://nebulaguard.com",
-    "image": "https://nebulaguard.com/og-image.jpg",
-    "screenshot": "https://nebulaguard.com/screenshot.jpg",
+    "url": "https://Jarvis.com",
+    "image": "https://Jarvis.com/og-image.jpg",
+    "screenshot": "https://Jarvis.com/screenshot.jpg",
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.9",
@@ -40,18 +40,18 @@ const SchemaMetadata = () => {
     "softwareVersion": "3.0",
     "provider": {
       "@type": "Organization",
-      "name": "NebulaGuard Inc.",
-      "url": "https://nebulaguard.com"
+      "name": "Jarvis Inc.",
+      "url": "https://Jarvis.com"
     }
   };
 
   return (
     <Helmet>
       {/* Primary Meta Tags */}
-      <title>NebulaGuard™ - AI-Powered Zabbix Monitoring That Predicts Outages</title>
+      <title>Jarvis™ - AI-Powered Zabbix Monitoring That Predicts Outages</title>
       <meta
         name="title"
-        content="NebulaGuard™ - AI-Powered Zabbix Monitoring That Predicts Outages"
+        content="Jarvis™ - AI-Powered Zabbix Monitoring That Predicts Outages"
       />
       <meta
         name="description"
@@ -64,39 +64,39 @@ const SchemaMetadata = () => {
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
-      <meta property="og:url" content="https://nebulaguard.com/" />
+      <meta property="og:url" content="https://Jarvis.com/" />
       <meta
         property="og:title"
-        content="NebulaGuard™ - AI-Powered Zabbix Monitoring That Predicts Outages"
+        content="Jarvis™ - AI-Powered Zabbix Monitoring That Predicts Outages"
       />
       <meta
         property="og:description"
         content="The only Zabbix platform that predicts outages before they happen. AI analyzes every problem in <1 second. Monitor 1.8M+ hosts with 90% less noise."
       />
-      <meta property="og:image" content="https://nebulaguard.com/og-image.jpg" />
+      <meta property="og:image" content="https://Jarvis.com/og-image.jpg" />
 
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content="https://nebulaguard.com/" />
+      <meta property="twitter:url" content="https://Jarvis.com/" />
       <meta
         property="twitter:title"
-        content="NebulaGuard™ - AI-Powered Zabbix Monitoring That Predicts Outages"
+        content="Jarvis™ - AI-Powered Zabbix Monitoring That Predicts Outages"
       />
       <meta
         property="twitter:description"
         content="The only Zabbix platform that predicts outages before they happen. AI analyzes every problem in <1 second. Monitor 1.8M+ hosts with 90% less noise."
       />
-      <meta property="twitter:image" content="https://nebulaguard.com/og-image.jpg" />
+      <meta property="twitter:image" content="https://Jarvis.com/og-image.jpg" />
 
       {/* Schema.org JSON-LD */}
       <script type="application/ld+json">{JSON.stringify(schema)}</script>
 
       {/* Additional SEO Tags */}
-      <link rel="canonical" href="https://nebulaguard.com/" />
+      <link rel="canonical" href="https://Jarvis.com/" />
       <meta name="robots" content="index, follow" />
       <meta name="language" content="English" />
       <meta name="revisit-after" content="7 days" />
-      <meta name="author" content="NebulaGuard Team" />
+      <meta name="author" content="Jarvis Team" />
     </Helmet>
   );
 };

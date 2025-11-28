@@ -38,7 +38,7 @@ const SuperAdminLayout = ({ children }: SuperAdminLayoutProps) => {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                NebulaGuard
+                Jarvis
               </h1>
               <p className="text-xs text-muted-foreground">AI Monitoring</p>
             </div>

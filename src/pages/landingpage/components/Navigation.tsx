@@ -60,10 +60,10 @@ const Navigation = () => {
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             >
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center glow-primary">
-                <span className="text-xl font-bold text-background">N</span>
+                <span className="text-xl font-bold text-background">J</span>
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                NebulaGuard™
+                Jarvis™
               </span>
             </motion.div>
 

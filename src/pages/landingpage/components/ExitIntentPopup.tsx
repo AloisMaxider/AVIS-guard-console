@@ -13,17 +13,13 @@ const ExitIntentPopup = () => {
         setHasShown(true);
       }
     };
-
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [hasShown]);
 
-  const handleClose = () => {
-    setIsVisible(false);
-  };
+  const handleClose = () => setIsVisible(false);
 
   const handleDownload = () => {
-    // Simulate download
     console.log("Downloading Zabbix to Zero Trust guide...");
     setIsVisible(false);
   };
@@ -46,14 +42,20 @@ const ExitIntentPopup = () => {
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-lg mx-4"
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4"
           >
-            <div className="glass-card rounded-3xl p-8 border-2 border-primary/50 shadow-[0_0_60px_rgba(0,240,255,0.4)] relative overflow-hidden">
+            <motion.div
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              exit={{ y: 20 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="glass-card w-full max-w-md rounded-2xl p-5 sm:p-6 border-2 border-primary/50 shadow-[0_0_40px_rgba(0,240,255,0.3)] relative"
+            >
               {/* Animated Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 animate-gradient-shift" />
-              
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 animate-gradient-shift rounded-2xl" />
+
               {/* Neon Grid */}
-              <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 opacity-10 rounded-2xl">
                 <div
                   className="w-full h-full"
                   style={{
@@ -61,7 +63,7 @@ const ExitIntentPopup = () => {
                       linear-gradient(hsl(var(--primary)) 1px, transparent 1px),
                       linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)
                     `,
-                    backgroundSize: "40px 40px",
+                    backgroundSize: "30px 30px",
                   }}
                 />
               </div>
@@ -71,28 +73,28 @@ const ExitIntentPopup = () => {
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleClose}
-                className="absolute top-4 right-4 p-2 rounded-full bg-surface/50 hover:bg-surface border border-border/30 hover:border-primary/50 transition-all z-10"
+                className="absolute top-3 right-3 p-2 rounded-full bg-surface/50 hover:bg-surface border border-border/30 hover:border-primary/50 transition-all z-10"
               >
-                <FiX className="w-5 h-5 text-foreground" />
+                <FiX className="w-4 h-4 text-foreground" />
               </motion.button>
 
-              <div className="relative z-10">
+              <div className="relative z-10 text-sm sm:text-base">
                 {/* Icon */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring" }}
-                  className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center glow-primary"
+                  transition={{ delay: 0.15, type: "spring" }}
+                  className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center glow-primary"
                 >
-                  <FiZap className="w-8 h-8 text-background" />
+                  <FiZap className="w-6 h-6 text-background" />
                 </motion.div>
 
                 {/* Title */}
                 <motion.h3
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-3xl font-bold text-center mb-4"
+                  transition={{ delay: 0.2 }}
+                  className="text-2xl font-bold text-center mb-3"
                 >
                   <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                     Wait! Don't Leave Empty-Handed
@@ -101,69 +103,66 @@ const ExitIntentPopup = () => {
 
                 {/* Description */}
                 <motion.p
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-center text-muted-foreground mb-6"
+                  transition={{ delay: 0.3 }}
+                  className="text-center text-muted-foreground mb-4 text-sm sm:text-base"
                 >
-                  Get your free comprehensive guide on transforming your Zabbix
-                  infrastructure with Zero Trust security principles and AI-powered
-                  monitoring.
+                  Get your free guide on transforming your infrastructure with Zero Trust principles and AI-powered monitoring.
                 </motion.p>
 
                 {/* Benefits */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="space-y-3 mb-8"
+                  transition={{ delay: 0.4 }}
+                  className="space-y-2 mb-6"
                 >
                   {[
-                    "40+ pages of expert insights",
                     "Real-world case studies",
                     "Step-by-step implementation guide",
                     "Exclusive AI monitoring strategies",
                   ].map((benefit, i) => (
                     <motion.div
                       key={benefit}
-                      initial={{ opacity: 0, x: -20 }}
+                      initial={{ opacity: 0, x: -15 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + i * 0.1 }}
-                      className="flex items-center gap-3"
+                      transition={{ delay: 0.45 + i * 0.05 }}
+                      className="flex items-center gap-2"
                     >
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-success to-primary flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-success to-primary flex items-center justify-center flex-shrink-0">
                         <FiDownload className="w-3 h-3 text-background" />
                       </div>
-                      <span className="text-foreground">{benefit}</span>
+                      <span className="text-foreground text-sm">{benefit}</span>
                     </motion.div>
                   ))}
                 </motion.div>
 
                 {/* CTA */}
                 <motion.button
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  whileHover={{ scale: 1.05 }}
+                  transition={{ delay: 0.7 }}
+                  whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleDownload}
-                  className="w-full py-4 bg-gradient-to-r from-primary via-secondary to-accent rounded-xl text-background font-bold text-lg hover:shadow-[0_0_40px_rgba(0,240,255,0.6)] transition-all flex items-center justify-center gap-3 group"
+                  className="w-full py-3 bg-gradient-to-r from-primary via-secondary to-accent rounded-lg text-background font-semibold text-base hover:shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all flex items-center justify-center gap-2 group"
                 >
-                  <FiDownload className="w-5 h-5 group-hover:animate-bounce" />
-                  Download Free Guide Now
+                  <FiDownload className="w-4 h-4 group-hover:animate-bounce" />
+                  Download Free Guide
                 </motion.button>
 
                 {/* Subtext */}
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 1 }}
-                  className="text-center text-xs text-muted-foreground mt-4"
+                  transition={{ delay: 0.85 }}
+                  className="text-center text-xs text-muted-foreground mt-3"
                 >
                   No credit card required • Instant access • 100% free
                 </motion.p>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         </>
       )}

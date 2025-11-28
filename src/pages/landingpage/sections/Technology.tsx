@@ -20,7 +20,7 @@ const compliance = [
 
 const Technology = () => {
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative py-16 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -28,7 +28,7 @@ const Technology = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-5xl md:text-6xl font-bold mb-4">
+          <h2 className="text-5xl md:text-6xl pt-24 font-bold mb-4">
             <span className="bg-gradient-to-r from-[#39ff14] to-[#00f0ff] bg-clip-text text-transparent">
               Built on Modern Tech
             </span>

@@ -27,7 +27,7 @@ const FinalCTA = () => {
   }, []);
 
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative py-20 overflow-hidden">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#00f0ff]/20 via-[#d900ff]/20 to-[#ff006e]/20 animate-gradient-shift" />
       
@@ -57,7 +57,7 @@ const FinalCTA = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-5xl md:text-7xl font-bold mb-8 leading-tight"
+            className="text-3xl md:text-5xl font-bold mb-8 leading-tight"
           >
             <span className="bg-gradient-to-r from-[#00f0ff] via-[#d900ff] to-[#ff006e] bg-clip-text text-transparent">
               The Last Monitoring Tool

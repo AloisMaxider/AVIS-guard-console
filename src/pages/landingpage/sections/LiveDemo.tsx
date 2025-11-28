@@ -16,7 +16,7 @@ const LiveDemo = () => {
   }, []);
 
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative py-16 overflow-hidden">
       {/* Floating particles background */}
       <div className="absolute inset-0">
         {[...Array(30)].map((_, i) => (
@@ -49,7 +49,7 @@ const LiveDemo = () => {
         >
           <h2 className="text-5xl md:text-6xl font-bold mb-4">
             <span className="bg-gradient-to-r from-[#00f0ff] to-[#d900ff] bg-clip-text text-transparent">
-              See NebulaGuard in Action
+              See Jarvis in Action
             </span>
           </h2>
           <p className="text-xl text-muted-foreground">No Signup Needed</p>

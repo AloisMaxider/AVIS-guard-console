@@ -53,7 +53,7 @@ const Footer = () => {
             >
               <h3 className="text-3xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-[#00f0ff] to-[#d900ff] bg-clip-text text-transparent">
-                  NebulaGuard™
+                  Jarvis™
                 </span>
               </h3>
               <p className="text-muted-foreground mb-6 max-w-xs">
@@ -118,11 +118,11 @@ const Footer = () => {
           className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4"
         >
           <p className="text-muted-foreground text-sm flex items-center gap-2">
-            Made with <FiHeart className="text-[#ff006e] w-4 h-4 animate-pulse" /> by the NebulaGuard Team
+            Made with <FiHeart className="text-[#ff006e] w-4 h-4 animate-pulse" /> by the Jarvis Team
           </p>
           
           <p className="text-muted-foreground text-sm">
-            © 2025 NebulaGuard. All rights reserved.
+            © 2025 Jarvis. All rights reserved.
           </p>
         </motion.div>
 

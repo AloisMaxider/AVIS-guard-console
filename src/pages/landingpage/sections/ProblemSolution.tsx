@@ -89,7 +89,7 @@ const ProblemSolution = () => {
             </div>
           </motion.div>
 
-          {/* Peaceful NebulaGuard side */}
+          {/* Peaceful Jarvis side */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -101,7 +101,7 @@ const ProblemSolution = () => {
             <div className="relative">
               <div className="flex items-center gap-2 mb-4 text-[#39ff14]">
                 <FiCheckCircle className="w-6 h-6" />
-                <span className="font-bold">NebulaGuard AI</span>
+                <span className="font-bold">Jarvis AI</span>
               </div>
               
               <div className="space-y-4">
