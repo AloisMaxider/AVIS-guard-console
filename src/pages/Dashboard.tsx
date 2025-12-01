@@ -1,6 +1,10 @@
-import { Server, AlertTriangle, CheckCircle, Activity, TrendingUp, TrendingDown } from "lucide-react";
+import { Server, AlertTriangle, CheckCircle, Activity } from "lucide-react";
 import KPICard from "@/components/dashboard/KPICard";
 import AppLayout from "@/components/layout/AppLayout";
+import SeverityDistributionChart from "@/components/dashboard/SeverityDistributionChart";
+import AlertsByHostWidget from "@/components/dashboard/AlertsByHostWidget";
+import AlertsTimelineWidget from "@/components/dashboard/AlertsTimelineWidget";
+import CriticalIssuesPanel from "@/components/dashboard/CriticalIssuesPanel";
 
 const Dashboard = () => {
   return (
@@ -48,97 +52,16 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Charts Row */}
+        {/* CEO Required Widgets Row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* System Health Overview */}
-          <div className="cyber-card">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-bold mb-1">System Health</h3>
-                <p className="text-sm text-muted-foreground">Last 24 hours</p>
-              </div>
-              <TrendingUp className="w-5 h-5 text-success" />
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">CPU Usage</span>
-                  <span className="text-sm font-medium">67%</span>
-                </div>
-                <div className="h-2 bg-surface rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary to-secondary w-[67%] rounded-full" />
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Memory Usage</span>
-                  <span className="text-sm font-medium">82%</span>
-                </div>
-                <div className="h-2 bg-surface rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-warning to-accent w-[82%] rounded-full" />
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Disk Usage</span>
-                  <span className="text-sm font-medium">45%</span>
-                </div>
-                <div className="h-2 bg-surface rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-success to-primary w-[45%] rounded-full" />
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm">Network I/O</span>
-                  <span className="text-sm font-medium">34%</span>
-                </div>
-                <div className="h-2 bg-surface rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-secondary to-accent w-[34%] rounded-full" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <SeverityDistributionChart />
+          <AlertsByHostWidget />
+        </div>
 
-          {/* Recent Problems */}
-          <div className="cyber-card">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-bold mb-1">Recent Problems</h3>
-                <p className="text-sm text-muted-foreground">Critical alerts</p>
-              </div>
-              <TrendingDown className="w-5 h-5 text-accent" />
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { host: "prod-web-01", severity: "high", issue: "High CPU usage detected", time: "2m ago" },
-                { host: "db-master-02", severity: "critical", issue: "Disk space critical", time: "5m ago" },
-                { host: "cache-redis-03", severity: "warning", issue: "Memory pressure warning", time: "12m ago" },
-                { host: "api-gateway-01", severity: "high", issue: "Response time elevated", time: "15m ago" },
-              ].map((problem, i) => (
-                <div 
-                  key={i} 
-                  className="flex items-start gap-3 p-3 rounded-lg bg-surface/50 border border-border/50 hover:border-primary/50 transition-all cursor-pointer hover-lift"
-                >
-                  <div className={`w-2 h-2 rounded-full mt-2 ${
-                    problem.severity === "critical" ? "bg-destructive animate-pulse-glow" :
-                    problem.severity === "high" ? "bg-accent" : "bg-warning"
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm truncate">{problem.host}</span>
-                      <span className="text-xs text-muted-foreground">{problem.time}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate">{problem.issue}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* CEO Required Widgets Row 2 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AlertsTimelineWidget />
+          <CriticalIssuesPanel />
         </div>
 
         {/* AI Insights */}
