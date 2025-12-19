@@ -5,10 +5,120 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Server, Activity, HardDrive, Cpu } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import {
+  selectHosts,
+  selectHostsLoading,
+  selectHostsError,
+} from "@/store/slices/hostsSlice";
+import { useHosts } from "@/hooks/useHosts";
+
+const capitalizeHostType = (type?: string): string => {
+  if (!type) return "Unknown";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+};
+
+const formatUptime = (uptime?: string) => {
+  if (!uptime) {
+    return { daysOnly: "—", detailed: "—" };
+  }
+
+  // Extract number from strings like "20.1 days"
+  const match = uptime.match(/([\d.]+)/);
+  if (!match) {
+    return { daysOnly: uptime, detailed: uptime };
+  }
+
+  const totalDays = parseFloat(match[1]);
+  const days = Math.floor(totalDays);
+  const hours = Math.round((totalDays - days) * 24);
+
+  return {
+    daysOnly: `${days} day${days !== 1 ? "s" : ""}`,
+    detailed: `${days} day${days !== 1 ? "s" : ""}${
+      hours > 0 ? ` ${hours} hour${hours !== 1 ? "s" : ""}` : ""
+    }`,
+  };
+};
+
 
 const UserHostDetail = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+
+  // ✅ ENSURE HOSTS ARE FETCHED (fixes infinite loading)
+  useHosts();
+
+  // ✅ Use selectors (correct state shape)
+  const hosts = useSelector(selectHosts);
+  const isLoading = useSelector(selectHostsLoading);
+  const error = useSelector(selectHostsError);
+
+  const host = hosts.find((h) => h.hostid === id);
+  const uptime = formatUptime(host?.uptime_days);
+
+  // ✅ Loading state (only when nothing cached)
+  if (isLoading && hosts.length === 0) {
+    return (
+      <UserLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading host details...</p>
+        </div>
+      </UserLayout>
+    );
+  }
+
+  // ✅ Error state
+  if (error && hosts.length === 0) {
+    return (
+      <UserLayout>
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard/hosts")}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold text-destructive">
+              Error loading hosts
+            </h1>
+          </div>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </UserLayout>
+    );
+  }
+
+  // ✅ Host not found (after data loaded)
+  if (!host) {
+    return (
+      <UserLayout>
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard/hosts")}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-2xl font-bold text-destructive">
+              Host not found
+            </h1>
+          </div>
+          <p className="text-muted-foreground">
+            The requested host could not be found.
+          </p>
+        </div>
+      </UserLayout>
+    );
+  }
+
+  const displayName = host.hostname || "Unknown Host";
+  const displayIP = host.ip || "—";
+  const displayOS = capitalizeHostType(host.host_type);
 
   return (
     <UserLayout>
@@ -24,55 +134,44 @@ const UserHostDetail = () => {
             </Button>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                web-server-{id}
+                {displayName}
               </h1>
               <p className="text-muted-foreground mt-1">
-                192.168.1.{id}0 • Ubuntu 22.04 LTS
+                {displayIP} • {displayOS}
               </p>
             </div>
           </div>
-          <Badge variant="default" className="gap-2">
-            <div className="w-2 h-2 bg-success rounded-full animate-pulse-glow" />
+
+          <Badge className="px-2 py-0.5 text-xs h-6 gap-2">
+            <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
             Online
           </Badge>
         </div>
 
+        {/* Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">CPU Usage</p>
-                <p className="text-2xl font-bold mt-1">45%</p>
-              </div>
-              <Cpu className="w-8 h-8 text-primary" />
-            </div>
+            <p className="text-sm text-muted-foreground">CPU Usage</p>
+            <p className="text-2xl font-bold mt-1">{host.cpu_usage || "—"}</p>
+            <Cpu className="w-8 h-8 text-primary mt-3" />
           </Card>
+
           <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Memory</p>
-                <p className="text-2xl font-bold mt-1">68%</p>
-              </div>
-              <Activity className="w-8 h-8 text-accent" />
-            </div>
+            <p className="text-sm text-muted-foreground">Memory</p>
+            <p className="text-2xl font-bold mt-1">{host.memory_usage || "—"}</p>
+            <Activity className="w-8 h-8 text-accent mt-3" />
           </Card>
+
           <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Disk Usage</p>
-                <p className="text-2xl font-bold mt-1">32%</p>
-              </div>
-              <HardDrive className="w-8 h-8 text-success" />
-            </div>
+            <p className="text-sm text-muted-foreground">Disk Usage</p>
+            <p className="text-2xl font-bold mt-1">{host.disk_usage || "—"}</p>
+            <HardDrive className="w-8 h-8 text-success mt-3" />
           </Card>
+
           <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Uptime</p>
-                <p className="text-2xl font-bold mt-1">99.9%</p>
-              </div>
-              <Server className="w-8 h-8 text-primary" />
-            </div>
+            <p className="text-sm text-muted-foreground">Uptime</p>
+            <p className="text-2xl font-bold mt-1">{uptime.daysOnly}</p>
+            <Server className="w-8 h-8 text-primary mt-3" />
           </Card>
         </div>
 
@@ -84,25 +183,25 @@ const UserHostDetail = () => {
             <TabsTrigger value="ai">AI Analysis</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4">
+          <TabsContent value="overview">
             <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
               <h3 className="text-lg font-semibold mb-4">Host Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Hostname</p>
-                  <p className="font-medium">web-server-{id}</p>
+                  <p className="font-medium">{displayName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">IP Address</p>
-                  <p className="font-medium">192.168.1.{id}0</p>
+                  <p className="font-medium">{displayIP}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">OS</p>
-                  <p className="font-medium">Ubuntu 22.04 LTS</p>
+                  <p className="font-medium">{displayOS}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Uptime</p>
-                  <p className="font-medium">42 days, 8 hours</p>
+                  <p className="font-medium">{uptime.detailed}</p>
                 </div>
               </div>
             </Card>
@@ -110,22 +209,19 @@ const UserHostDetail = () => {
 
           <TabsContent value="metrics">
             <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-              <h3 className="text-lg font-semibold mb-4">Real-time Metrics</h3>
-              <p className="text-muted-foreground">Live metrics visualization would appear here</p>
+              Live metrics visualization would appear here
             </Card>
           </TabsContent>
 
           <TabsContent value="triggers">
             <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-              <h3 className="text-lg font-semibold mb-4">Trigger History</h3>
-              <p className="text-muted-foreground">Trigger history would appear here</p>
+              Trigger history would appear here
             </Card>
           </TabsContent>
 
           <TabsContent value="ai">
             <Card className="p-6 bg-card/50 backdrop-blur border-border/50">
-              <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
-              <p className="text-muted-foreground">AI insights and recommendations would appear here</p>
+              AI insights and recommendations would appear here
             </Card>
           </TabsContent>
         </Tabs>
