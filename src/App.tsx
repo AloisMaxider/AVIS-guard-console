@@ -25,9 +25,8 @@ import RoleBasedRoute from "./components/rbac/RoleBasedRoute";
 
 // User Pages
 import UserDashboard from "./pages/user/UserDashboard";
-import UserHosts from "./pages/user/UserHosts";
+import UserZabbix from "./pages/user/UserZabbix";
 import UserHostDetail from "./pages/user/UserHostDetail";
-import UserAlerts from "./pages/user/UserAlerts";
 import UserVeeam from "./pages/user/UserVeeam";
 import UserTraps from "./pages/user/UserTraps";
 import UserInsights from "./pages/user/UserInsights";
@@ -78,9 +77,8 @@ const App = () => (
 
             {/* User Routes */}
             <Route path="/dashboard" element={<RoleBasedRoute requiredRole="user"><UserDashboard /></RoleBasedRoute>} />
-            <Route path="/dashboard/hosts" element={<RoleBasedRoute requiredRole="user"><UserHosts /></RoleBasedRoute>} />
+            <Route path="/dashboard/zabbix" element={<RoleBasedRoute requiredRole="user"><UserZabbix /></RoleBasedRoute>} />
             <Route path="/dashboard/hosts/:id" element={<RoleBasedRoute requiredRole="user"><UserHostDetail /></RoleBasedRoute>} />
-            <Route path="/dashboard/alerts" element={<RoleBasedRoute requiredRole="user"><UserAlerts /></RoleBasedRoute>} />
             <Route path="/dashboard/veeam" element={<RoleBasedRoute requiredRole="user"><UserVeeam /></RoleBasedRoute>} />
             <Route path="/dashboard/traps" element={<RoleBasedRoute requiredRole="user"><UserTraps /></RoleBasedRoute>} />
             <Route path="/dashboard/insights" element={<RoleBasedRoute requiredRole="user"><UserInsights /></RoleBasedRoute>} />

@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Bell, Search, User, LayoutDashboard, Server, AlertTriangle, Radio, Lightbulb, FileText, Settings, Shield, Zap, Database } from "lucide-react";
+import { Bell, Search, User, LayoutDashboard, Server, AlertTriangle, Radio, Lightbulb, FileText, Settings, Shield, Zap, Database, Server as ServerIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NavLink } from "@/components/NavLink";
@@ -12,8 +12,7 @@ interface UserLayoutProps {
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Server, label: "Hosts", path: "/dashboard/hosts" },
-  { icon: AlertTriangle, label: "Alerts", path: "/dashboard/alerts" },
+  { icon: ServerIcon, label: "Zabbix", path: "/dashboard/zabbix" },
   { icon: Database, label: "Veeam", path: "/dashboard/veeam" },
   { icon: Radio, label: "Traps", path: "/dashboard/traps" },
   { icon: Lightbulb, label: "Insights", path: "/dashboard/insights" },

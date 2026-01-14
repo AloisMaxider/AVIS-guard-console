@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import UserLayout from "@/layouts/UserLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ import VeeamStatusBadge from "@/components/veeam/VeeamStatusBadge";
 import VeeamJobDetailDrawer from "@/components/veeam/VeeamJobDetailDrawer";
 import VeeamFilters from "@/components/veeam/VeeamFilters";
 
-// Dummy data for Alarms tab (unchanged)
+// Dummy data for Alarms tab
 const dummyAlarms = [
   { id: 1, name: "Backup Repository Low Space", severity: "warning", entity: "Backup Repository 01", time: "5 min ago", status: "Active" },
   { id: 2, name: "Job Failed - Critical VM", severity: "critical", entity: "DC-PROD-01", time: "15 min ago", status: "Active" },
@@ -44,7 +45,7 @@ const dummyAlarms = [
   { id: 4, name: "Configuration Backup Missing", severity: "info", entity: "Veeam Server", time: "2 hours ago", status: "Resolved" },
 ];
 
-// Dummy data for Infrastructure tab (unchanged)
+// Dummy data for Infrastructure tab
 const dummyInfrastructure = [
   { id: 1, name: "vCenter-Prod", type: "VMware vCenter", hosts: 12, vms: 156, status: "Connected" },
   { id: 2, name: "ESXi-Cluster-01", type: "ESXi Cluster", hosts: 4, vms: 45, status: "Connected" },
@@ -63,12 +64,13 @@ const UserVeeam = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
   const [customDateFrom, setCustomDateFrom] = useState<Date | undefined>(undefined);
   const [customDateTo, setCustomDateTo] = useState<Date | undefined>(undefined);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   const itemsPerPage = 10;
 
   const { jobs, loading, counts, isConnected, lastUpdated } = useVeeamBackupAndReplication();
 
-  // Filter jobs based on search, status and time range
+  // Filter jobs based on search, status, time range, and category
   const filteredJobs = jobs.filter((job) => {
     const search = searchQuery.toLowerCase();
     const matchesSearch =
@@ -77,6 +79,8 @@ const UserVeeam = () => {
       (job.esxiHost || "").toLowerCase().includes(search);
 
     const matchesStatus = filterStatus ? job.status === filterStatus : true;
+
+    const matchesCategory = filterCategory ? job.category === filterCategory : true;
 
     // Time filter logic
     let matchesTime = true;
@@ -107,7 +111,7 @@ const UserVeeam = () => {
       }
     }
 
-    return matchesSearch && matchesStatus && matchesTime;
+    return matchesSearch && matchesStatus && matchesTime && matchesCategory;
   });
 
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
@@ -118,7 +122,7 @@ const UserVeeam = () => {
   // Reset page when any filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterStatus, selectedTimeRange, customDateFrom, customDateTo]);
+  }, [searchQuery, filterStatus, selectedTimeRange, customDateFrom, customDateTo, filterCategory]);
 
   // Keep page in valid range
   useEffect(() => {
@@ -188,7 +192,7 @@ const UserVeeam = () => {
                 )}
               </div>
 
-              {/* Restored original count badges (non-clickable) */}
+              {/* Count badges (non-clickable) */}
               <div className="flex items-center gap-2">
                 <Badge className="bg-success/20 text-success border-success/30">
                   {counts.success} Success
@@ -223,6 +227,8 @@ const UserVeeam = () => {
                 onCustomDateFromChange={setCustomDateFrom}
                 customDateTo={customDateTo}
                 onCustomDateToChange={setCustomDateTo}
+                filterCategory={filterCategory}
+                onFilterCategoryChange={setFilterCategory}
               />
             </div>
 
@@ -246,7 +252,7 @@ const UserVeeam = () => {
                         <TableHead>ESXi Host</TableHead>
                         <TableHead>Last Run</TableHead>
                         <TableHead>Duration</TableHead>
-                        <TableHead>Data Transferred</TableHead>
+                        <TableHead>Category</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -276,7 +282,7 @@ const UserVeeam = () => {
                               </div>
                             </TableCell>
                             <TableCell>{formatDuration(job.durationSec)}</TableCell>
-                            <TableCell>{formatBytes(job.dataTransferredBytes)}</TableCell>
+                            <TableCell>{job.category}</TableCell>
                           </motion.tr>
                         ))}
                       </AnimatePresence>
@@ -327,13 +333,86 @@ const UserVeeam = () => {
             )}
           </TabsContent>
 
-          {/* Alarms and Infrastructure tabs unchanged */}
+          {/* Alarms Tab (Dummy Data) */}
           <TabsContent value="alarms" className="space-y-6">
-            {/* your alarms content */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">Placeholder Data</Badge>
+            </div>
+
+            <div className="space-y-4">
+              {dummyAlarms.map((alarm, index) => (
+                <Card
+                  key={alarm.id}
+                  className="p-4 hover:border-primary/30 transition-all cursor-pointer"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <AlertTriangle
+                        className={`w-5 h-5 mt-0.5 ${
+                          alarm.severity === "critical"
+                            ? "text-destructive"
+                            : alarm.severity === "warning"
+                            ? "text-warning"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium">{alarm.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Server className="w-3 h-3" />
+                          <span>{alarm.entity}</span>
+                          <span>•</span>
+                          <span>{alarm.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge variant={alarm.status === "Active" ? "destructive" : "secondary"}>
+                      {alarm.status}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
+          {/* Infrastructure Tab (Dummy Data) */}
           <TabsContent value="infrastructure" className="space-y-6">
-            {/* your infrastructure content */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">Placeholder Data</Badge>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {dummyInfrastructure.map((item, index) => (
+                <Card
+                  key={item.id}
+                  className="p-4 hover:border-primary/30 transition-all cursor-pointer"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Server className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{item.name}</h4>
+                      <p className="text-xs text-muted-foreground">{item.type}</p>
+                      <div className="mt-3 flex items-center justify-between text-sm">
+                        {item.capacity ? (
+                          <span className="text-muted-foreground">{item.capacity}</span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            {item.hosts} hosts • {item.vms} VMs
+                          </span>
+                        )}
+                        <Badge variant="outline" className="text-success border-success/30">
+                          {item.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

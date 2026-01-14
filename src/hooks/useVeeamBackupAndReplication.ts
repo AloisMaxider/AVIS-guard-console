@@ -132,7 +132,10 @@ export const useVeeamBackupAndReplication = (): UseVeeamBackupReturn => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const jobsMapRef = useRef<Map<string, TransformedVeeamJob>>(new Map());
+  
+  // Store job order and data separately
+  const jobOrderRef = useRef<string[]>([]); // Array of job IDs in display order
+  const jobsDataRef = useRef<Map<string, TransformedVeeamJob>>(new Map()); // Job data by ID
 
   // Calculate counts from jobs
   const counts: VeeamCounts = {
@@ -141,6 +144,52 @@ export const useVeeamBackupAndReplication = (): UseVeeamBackupReturn => {
     failed: jobs.filter(j => j.status === "Failed").length,
     running: jobs.filter(j => j.status === "Running").length,
     total: jobs.length,
+  };
+
+  // Update jobs state while preserving order
+  const updateJobsPreservingOrder = () => {
+    const currentOrder = jobOrderRef.current;
+    const jobsData = jobsDataRef.current;
+    
+    // Create new array in the existing order, using latest data
+    const updatedJobs = currentOrder
+      .map(id => jobsData.get(id))
+      .filter((job): job is TransformedVeeamJob => job !== undefined);
+    
+    setJobs(updatedJobs);
+  };
+
+  // Smart update - only update data, preserve order
+  const updateJobData = (newJobs: TransformedVeeamJob[]) => {
+    const newJobsData = new Map<string, TransformedVeeamJob>();
+    
+    // Add all new jobs to the data map
+    newJobs.forEach(job => {
+      newJobsData.set(job.id, job);
+    });
+
+    // Update job order if this is the initial load or new jobs appeared
+    if (jobOrderRef.current.length === 0) {
+      // Initial load: use the order from the server
+      jobOrderRef.current = newJobs.map(job => job.id);
+    } else {
+      // Subsequent updates: only add new job IDs to the end of the order
+      const existingOrder = jobOrderRef.current;
+      const newIds = newJobs.map(job => job.id);
+      const existingIdsSet = new Set(existingOrder);
+      
+      // Add any new IDs to the end
+      const newlyAddedIds = newIds.filter(id => !existingIdsSet.has(id));
+      if (newlyAddedIds.length > 0) {
+        jobOrderRef.current = [...existingOrder, ...newlyAddedIds];
+      }
+    }
+
+    // Update the data map
+    jobsDataRef.current = newJobsData;
+    
+    // Update the state with preserved order
+    updateJobsPreservingOrder();
   };
 
   // Fetch jobs from webhook
@@ -167,23 +216,9 @@ export const useVeeamBackupAndReplication = (): UseVeeamBackupReturn => {
       // Transform to our format
       const transformedJobs = webhookJobs.map(transformVeeamJob);
       
-      // Smart merge: only update changed jobs to avoid flicker
-      const newJobsMap = new Map<string, TransformedVeeamJob>();
-      transformedJobs.forEach(job => {
-        const existing = jobsMapRef.current.get(job.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(job)) {
-          newJobsMap.set(job.id, job);
-        } else {
-          newJobsMap.set(job.id, existing);
-        }
-      });
+      // Update job data while preserving order
+      updateJobData(transformedJobs);
       
-      jobsMapRef.current = newJobsMap;
-      // Sort by lastRun descending (most recent first)
-      const sortedJobs = Array.from(newJobsMap.values()).sort((a, b) => 
-        b.lastRun.getTime() - a.lastRun.getTime()
-      );
-      setJobs(sortedJobs);
       setIsConnected(true);
       setLastUpdated(new Date());
       setError(null);

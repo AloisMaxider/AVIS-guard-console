@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Calendar as CalendarIcon, X, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { TransformedVeeamJob } from "@/hooks/useVeeamBackupAndReplication";
 
@@ -29,6 +29,9 @@ const timeRanges = [
   { label: "Last 30 days", value: "30d" },
 ];
 
+const statusOptions = ["Success", "Warning", "Failed"] as const;
+const categoryOptions = ["BACKUP", "REPLICATION"] as const;
+
 interface VeeamFiltersProps {
   filterStatus: TransformedVeeamJob["status"] | null;
   onFilterStatusChange: (status: TransformedVeeamJob["status"] | null) => void;
@@ -38,6 +41,8 @@ interface VeeamFiltersProps {
   onCustomDateFromChange: (date?: Date) => void;
   customDateTo?: Date;
   onCustomDateToChange: (date?: Date) => void;
+  filterCategory: string | null;
+  onFilterCategoryChange: (category: string | null) => void;
 }
 
 export default function VeeamFilters({
@@ -49,8 +54,12 @@ export default function VeeamFilters({
   onCustomDateFromChange,
   customDateTo,
   onCustomDateToChange,
+  filterCategory,
+  onFilterCategoryChange,
 }: VeeamFiltersProps) {
-  const [open, setOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
 
   const timeLabel = useMemo(() => {
     if (selectedTimeRange !== "custom") {
@@ -64,47 +73,146 @@ export default function VeeamFilters({
     return "Custom range";
   }, [selectedTimeRange, customDateFrom, customDateTo]);
 
+  const handleStatusSelect = (status: TransformedVeeamJob["status"]) => {
+    // Toggle: if already selected → clear it
+    onFilterStatusChange(filterStatus === status ? null : status);
+    setStatusOpen(false);
+  };
+
+  const handleCategorySelect = (category: string) => {
+    // Toggle: if already selected → clear it
+    onFilterCategoryChange(filterCategory === category ? null : category);
+    setCategoryOpen(false);
+  };
+
+  const clearStatus = () => {
+    onFilterStatusChange(null);
+    setStatusOpen(false);
+  };
+
+  const clearCategory = () => {
+    onFilterCategoryChange(null);
+    setCategoryOpen(false);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Status badges as toggle filters */}
-      <Badge
-        variant="outline"
-        className={`cursor-pointer min-w-[80px] text-center ${
-          filterStatus === "Success"
-            ? "bg-success/20 text-success border-success ring-2 ring-success/50"
-            : "hover:bg-success/10"
-        }`}
-        onClick={() => onFilterStatusChange(filterStatus === "Success" ? null : "Success")}
-      >
-        Success
-      </Badge>
+      {/* Status Dropdown */}
+      <DropdownMenu open={statusOpen} onOpenChange={setStatusOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 min-w-[170px] justify-start text-left"
+          >
+            <Filter className="h-4 w-4" />
+            {filterStatus || "Status"}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuLabel>Status Filter</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          {/* Explicit "All" / Clear option */}
+          <DropdownMenuCheckboxItem
+            checked={!filterStatus}
+            onCheckedChange={() => {
+              if (filterStatus) clearStatus();
+            }}
+          >
+            All Statuses
+          </DropdownMenuCheckboxItem>
 
-      <Badge
-        variant="outline"
-        className={`cursor-pointer min-w-[80px] text-center ${
-          filterStatus === "Warning"
-            ? "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500 ring-2 ring-yellow-500/50"
-            : "hover:bg-yellow-500/10"
-        }`}
-        onClick={() => onFilterStatusChange(filterStatus === "Warning" ? null : "Warning")}
-      >
-        Warning
-      </Badge>
+          <DropdownMenuSeparator />
 
-      <Badge
-        variant="outline"
-        className={`cursor-pointer min-w-[80px] text-center ${
-          filterStatus === "Failed"
-            ? "bg-destructive/20 text-destructive border-destructive ring-2 ring-destructive/50"
-            : "hover:bg-destructive/10"
-        }`}
-        onClick={() => onFilterStatusChange(filterStatus === "Failed" ? null : "Failed")}
-      >
-        Failed
-      </Badge>
+          {statusOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option}
+              checked={filterStatus === option}
+              onCheckedChange={() => handleStatusSelect(option)}
+            >
+              {option}
+            </DropdownMenuCheckboxItem>
+          ))}
 
-      {/* Time Range Dropdown */}
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+          {filterStatus && (
+            <>
+              <DropdownMenuSeparator />
+              <div className="p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={clearStatus}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear Status Filter
+                </Button>
+              </div>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Category Dropdown */}
+      <DropdownMenu open={categoryOpen} onOpenChange={setCategoryOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 min-w-[170px] justify-start text-left"
+          >
+            <Filter className="h-4 w-4" />
+            {filterCategory || "Category"}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuLabel>Category Filter</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          {/* Explicit "All" / Clear option */}
+          <DropdownMenuCheckboxItem
+            checked={!filterCategory}
+            onCheckedChange={() => {
+              if (filterCategory) clearCategory();
+            }}
+          >
+            All Categories
+          </DropdownMenuCheckboxItem>
+
+          <DropdownMenuSeparator />
+
+          {categoryOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option}
+              checked={filterCategory === option}
+              onCheckedChange={() => handleCategorySelect(option)}
+            >
+              {option}
+            </DropdownMenuCheckboxItem>
+          ))}
+
+          {filterCategory && (
+            <>
+              <DropdownMenuSeparator />
+              <div className="p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={clearCategory}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear Category Filter
+                </Button>
+              </div>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Time Range Dropdown (unchanged) */}
+      <DropdownMenu open={timeOpen} onOpenChange={setTimeOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -129,7 +237,7 @@ export default function VeeamFilters({
                   onTimeRangeChange(range.value);
                   onCustomDateFromChange(undefined);
                   onCustomDateToChange(undefined);
-                  setOpen(false);
+                  setTimeOpen(false);
                 }
               }}
             >
@@ -195,7 +303,7 @@ export default function VeeamFilters({
                     onTimeRangeChange("24h");
                     onCustomDateFromChange(undefined);
                     onCustomDateToChange(undefined);
-                    setOpen(false);
+                    setTimeOpen(false);
                   }}
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -206,19 +314,6 @@ export default function VeeamFilters({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {/* Clear status if active */}
-      {filterStatus && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-muted-foreground hover:text-foreground"
-          onClick={() => onFilterStatusChange(null)}
-        >
-          <X className="mr-1 h-3.5 w-3.5" />
-          Clear status
-        </Button>
-      )}
     </div>
   );
 }
