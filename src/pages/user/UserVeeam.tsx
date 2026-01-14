@@ -36,14 +36,9 @@ import {
 import VeeamStatusBadge from "@/components/veeam/VeeamStatusBadge";
 import VeeamJobDetailDrawer from "@/components/veeam/VeeamJobDetailDrawer";
 import VeeamFilters from "@/components/veeam/VeeamFilters";
-
-// Dummy data for Alarms tab
-const dummyAlarms = [
-  { id: 1, name: "Backup Repository Low Space", severity: "warning", entity: "Backup Repository 01", time: "5 min ago", status: "Active" },
-  { id: 2, name: "Job Failed - Critical VM", severity: "critical", entity: "DC-PROD-01", time: "15 min ago", status: "Active" },
-  { id: 3, name: "Replication RPO Exceeded", severity: "warning", entity: "APP-SERVER-02", time: "1 hour ago", status: "Acknowledged" },
-  { id: 4, name: "Configuration Backup Missing", severity: "info", entity: "Veeam Server", time: "2 hours ago", status: "Resolved" },
-];
+import { useVeeamAlarms, VeeamAlarm, getRelativeTime } from "@/hooks/useVeeamAlarms";
+import VeeamAlarmDetailDrawer from "@/components/veeam/VeeamAlarmDetailDrawer";
+import VeeamAlarmsFilters from "@/components/veeam/VeeamAlarmsFilters";
 
 // Dummy data for Infrastructure tab
 const dummyInfrastructure = [
@@ -66,10 +61,16 @@ const UserVeeam = () => {
   const [customDateTo, setCustomDateTo] = useState<Date | undefined>(undefined);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
+  // Alarms state
+  const [selectedAlarm, setSelectedAlarm] = useState<VeeamAlarm | null>(null);
+  const [alarmDrawerOpen, setAlarmDrawerOpen] = useState(false);
+
   const itemsPerPage = 10;
 
   const { jobs, loading, counts, isConnected, lastUpdated } = useVeeamBackupAndReplication();
 
+  // Veeam Alarms hook
+  const alarmsHook = useVeeamAlarms({ pageSize: 10 });
   // Filter jobs based on search, status, time range, and category
   const filteredJobs = jobs.filter((job) => {
     const search = searchQuery.toLowerCase();
@@ -333,47 +334,188 @@ const UserVeeam = () => {
             )}
           </TabsContent>
 
-          {/* Alarms Tab (Dummy Data) */}
+          {/* Alarms Tab (Real Data) */}
           <TabsContent value="alarms" className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">Placeholder Data</Badge>
+            {/* Status Bar */}
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <p className="text-muted-foreground">{alarmsHook.counts.total} alarms</p>
+                <div className="flex items-center gap-1 text-xs">
+                  {alarmsHook.isConnected ? (
+                    <>
+                      <Wifi className="w-3 h-3 text-success" />
+                      <span className="text-success">Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3 text-destructive" />
+                      <span className="text-destructive">Offline</span>
+                    </>
+                  )}
+                </div>
+                {alarmsHook.lastUpdated && (
+                  <span className="text-xs text-muted-foreground">
+                    Updated: {alarmsHook.lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+
+              {/* Count badges */}
+              <div className="flex items-center gap-2">
+                <Badge className="bg-destructive/20 text-destructive border-destructive/30">
+                  {alarmsHook.counts.active} Active
+                </Badge>
+                <Badge className="bg-warning/20 text-warning border-warning/30">
+                  {alarmsHook.counts.acknowledged} Acknowledged
+                </Badge>
+                <Badge className="bg-success/20 text-success border-success/30">
+                  {alarmsHook.counts.resolved} Resolved
+                </Badge>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {dummyAlarms.map((alarm, index) => (
-                <Card
-                  key={alarm.id}
-                  className="p-4 hover:border-primary/30 transition-all cursor-pointer"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <AlertTriangle
-                        className={`w-5 h-5 mt-0.5 ${
-                          alarm.severity === "critical"
-                            ? "text-destructive"
-                            : alarm.severity === "warning"
-                            ? "text-warning"
-                            : "text-muted-foreground"
-                        }`}
-                      />
-                      <div className="flex-1 space-y-1">
-                        <p className="font-medium">{alarm.name}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Server className="w-3 h-3" />
-                          <span>{alarm.entity}</span>
-                          <span>•</span>
-                          <span>{alarm.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant={alarm.status === "Active" ? "destructive" : "secondary"}>
-                      {alarm.status}
-                    </Badge>
-                  </div>
-                </Card>
-              ))}
+            {/* Search + Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="relative max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search alarms, entities..."
+                  value={alarmsHook.searchQuery}
+                  onChange={(e) => alarmsHook.setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <VeeamAlarmsFilters
+                filterStatus={alarmsHook.filterStatus}
+                onFilterStatusChange={alarmsHook.setFilterStatus}
+                filterSeverity={alarmsHook.filterSeverity}
+                onFilterSeverityChange={alarmsHook.setFilterSeverity}
+                filterEntityType={alarmsHook.filterEntityType}
+                onFilterEntityTypeChange={alarmsHook.setFilterEntityType}
+                entityTypes={alarmsHook.entityTypes}
+                timeRange={alarmsHook.timeRange}
+                onTimeRangeChange={alarmsHook.setTimeRange}
+                customDateFrom={alarmsHook.customDateFrom}
+                onCustomDateFromChange={alarmsHook.setCustomDateFrom}
+                customDateTo={alarmsHook.customDateTo}
+                onCustomDateToChange={alarmsHook.setCustomDateTo}
+              />
             </div>
+
+            {/* Loading State */}
+            {alarmsHook.loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            )}
+
+            {/* Alarm Cards */}
+            {!alarmsHook.loading && (
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {alarmsHook.paginatedAlarms.map((alarm, index) => (
+                    <motion.div
+                      key={alarm.dedupe_key || alarm.alarm_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.15, delay: index * 0.02 }}
+                    >
+                      <Card
+                        className="p-4 hover:border-primary/30 transition-all cursor-pointer"
+                        onClick={() => {
+                          setSelectedAlarm(alarm);
+                          setAlarmDrawerOpen(true);
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1">
+                            <AlertTriangle
+                              className={`w-5 h-5 mt-0.5 ${
+                                alarm.severity?.toLowerCase() === "critical"
+                                  ? "text-destructive"
+                                  : alarm.severity?.toLowerCase() === "warning"
+                                  ? "text-warning"
+                                  : alarm.severity?.toLowerCase() === "high"
+                                  ? "text-orange-500"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                            <div className="flex-1 space-y-1">
+                              <p className="font-medium">{alarm.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                                <Server className="w-3 h-3" />
+                                <span>{alarm.entity_name}</span>
+                                <span>•</span>
+                                <span className="text-muted-foreground/70">{alarm.entity_type}</span>
+                                <span>•</span>
+                                <span>{getRelativeTime(alarm.last_seen || alarm.triggered_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                alarm.severity?.toLowerCase() === "critical"
+                                  ? "bg-destructive/20 text-destructive border-destructive/30"
+                                  : alarm.severity?.toLowerCase() === "warning"
+                                  ? "bg-warning/20 text-warning border-warning/30"
+                                  : alarm.severity?.toLowerCase() === "high"
+                                  ? "bg-orange-500/20 text-orange-500 border-orange-500/30"
+                                  : "bg-muted/20 text-muted-foreground border-muted/30"
+                              }
+                            >
+                              {alarm.severity}
+                            </Badge>
+                            <Badge
+                              variant={alarm.status === "Active" ? "destructive" : "secondary"}
+                              className={
+                                alarm.status === "Active"
+                                  ? "bg-destructive/20 text-destructive border-destructive/30"
+                                  : alarm.status === "Resolved"
+                                  ? "bg-success/20 text-success border-success/30"
+                                  : alarm.status === "Acknowledged"
+                                  ? "bg-warning/20 text-warning border-warning/30"
+                                  : ""
+                              }
+                            >
+                              {alarm.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {/* Empty State */}
+                {alarmsHook.paginatedAlarms.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <AlertTriangle className="w-12 h-12 mb-4 opacity-50" />
+                    <p>No alarms found</p>
+                  </div>
+                )}
+
+                {/* Load More / Pagination Info */}
+                {alarmsHook.paginatedAlarms.length > 0 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border">
+                    <p className="text-sm text-muted-foreground">
+                      Showing 1–{alarmsHook.paginatedAlarms.length} of {alarmsHook.totalCount}
+                    </p>
+                    {alarmsHook.hasMore && (
+                      <Button
+                        variant="outline"
+                        onClick={alarmsHook.loadMore}
+                        className="gap-2"
+                      >
+                        Load more
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           {/* Infrastructure Tab (Dummy Data) */}
@@ -421,6 +563,12 @@ const UserVeeam = () => {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
         job={selectedJob}
+      />
+
+      <VeeamAlarmDetailDrawer
+        open={alarmDrawerOpen}
+        onOpenChange={setAlarmDrawerOpen}
+        alarm={selectedAlarm}
       />
     </UserLayout>
   );
