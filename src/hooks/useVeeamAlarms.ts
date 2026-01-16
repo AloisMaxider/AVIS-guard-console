@@ -85,7 +85,7 @@ export const useVeeamAlarms = (options: UseVeeamAlarmsOptions = {}): UseVeeamAla
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<AlarmStatus | null>("Active");
+  const [filterStatus, setFilterStatus] = useState<AlarmStatus | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<AlarmSeverity | null>(null);
   const [filterEntityType, setFilterEntityType] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("24h");

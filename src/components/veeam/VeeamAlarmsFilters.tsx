@@ -49,13 +49,13 @@ const VeeamAlarmsFilters = ({
   onCustomDateToChange,
 }: VeeamAlarmsFiltersProps) => {
   const hasActiveFilters =
-    filterStatus !== "Active" ||
+    filterStatus !== null ||
     filterSeverity !== null ||
     filterEntityType !== null ||
     timeRange !== "24h";
 
   const clearFilters = () => {
-    onFilterStatusChange("Active");
+    onFilterStatusChange(null);
     onFilterSeverityChange(null);
     onFilterEntityTypeChange(null);
     onTimeRangeChange("24h");
