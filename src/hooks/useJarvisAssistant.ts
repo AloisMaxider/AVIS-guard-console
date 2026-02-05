@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useAuthenticatedFetch } from "@/keycloak/hooks/useAuthenticatedFetch";
 
 interface JarvisResponse {
   confidence: string;
@@ -11,18 +12,19 @@ interface UseJarvisAssistantReturn {
   error: string | null;
 }
 
-const WEBHOOK_URL = "http://localhost:5678/webhook/Jarvis-AI-Assistant";
+const WEBHOOK_URL = "http://10.100.12.141:5678/webhook/Jarvis-AI-Assistant";
 
 const useJarvisAssistant = (): UseJarvisAssistantReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { authenticatedFetch } = useAuthenticatedFetch();
   const sendMessage = useCallback(async (message: string): Promise<{ message: string; confidence?: string } | null> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const response = await authenticatedFetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

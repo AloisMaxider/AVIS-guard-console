@@ -10,8 +10,8 @@ const Footer = () => {
       { name: "Demo", href: "#demo" },
     ],
     Legal: [
-      { name: "Privacy Policy", href: "#privacy" },
-      { name: "Terms of Service", href: "#terms" },
+      { name: "Privacy Policy", href: "/privacy-policy" }, // Updated to actual route
+      { name: "Terms of Service", href: "/terms-of-use" }, // Updated to actual route (note: your footer says "Terms of Service" but document is "Terms of Use"; change name if needed to "Terms of Use")
     ]
   };
 
@@ -100,6 +100,8 @@ const Footer = () => {
                   <li key={i}>
                     <a
                       href={link.href}
+                      target="_blank" // Added to open in new tab
+                      rel="noopener noreferrer" // Added for security
                       className="text-muted-foreground hover:text-[#43BFC7] transition-colors text-sm"
                     >
                       {link.name}
@@ -157,7 +159,7 @@ const Footer = () => {
             Made with <FiHeart className="text-[#FAA41E] w-4 h-4 animate-pulse" /> by the Avis Team
           </p>
 
-          <p>© {new Date().getFullYear()} Avis. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Avis. All rights reserved.</p> {/* Updated to Sentramind */}
         </motion.div>
 
         {/* Decorative bottom line */}

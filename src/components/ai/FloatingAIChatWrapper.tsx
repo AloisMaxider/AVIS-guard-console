@@ -6,7 +6,7 @@ import FloatingAIChat from "./FloatingAIChat";
  * Renders the AI Assistant on all routes EXCEPT the landing page.
  * 
  * Excluded routes:
- * - "/" (Landing Page)
+ * - "/", "/login", "/signup", "/terms-of-use", "/privacy-policy" (Landing Page, Login, Signup, terms of use, privacy policy)
  * 
  * This wrapper is mounted once globally in App.tsx and controls
  * visibility based on the current route.
@@ -15,7 +15,7 @@ const FloatingAIChatWrapper = () => {
   const location = useLocation();
 
   // Define routes where the AI Assistant should be hidden
-  const excludedRoutes = ["/"];
+const excludedRoutes = ["/", "/login", "/signup", "/terms-of-use", "/privacy-policy"];
 
   // Check if current path matches any excluded route
   const shouldHide = excludedRoutes.includes(location.pathname);

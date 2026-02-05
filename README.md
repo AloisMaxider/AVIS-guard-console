@@ -1,12 +1,12 @@
-# NebulaGuard
+# AVIS-Sentramind
 
-**NebulaGuard** is an enterprise-grade, multi-tenant monitoring platform designed for NOC/SOC operations. It provides unified visibility into Zabbix alerts, Veeam backup infrastructure, and system health metrics through role-based dashboards with AI-powered insights.
+**AVIS** is an enterprise-grade, multi-tenant monitoring platform that provides unified visibility into Zabbix alerts, Veeam backup infrastructure, and system health metrics. It delivers centralized monitoring through role-based dashboards, enhanced with AI-powered insights to help teams quickly understand system status, identify issues, and make informed decisions. The platform also generates automated daily, weekly, and monthly reports distributed via email, and sends real-time alert notifications through Telegram to ensure timely awareness and response.
 
 ---
 
 ## Problem & Objective
 
-Modern IT operations teams manage complex infrastructure across multiple monitoring tools, making it difficult to maintain situational awareness and respond quickly to incidents. NebulaGuard consolidates monitoring data from Zabbix and Veeam into a single, intuitive interface with intelligent alerting, role-based access control, and AI-assisted analysis.
+Modern IT teams operate complex infrastructure across multiple monitoring and backup systems, which often leads to fragmented visibility, delayed responses, and manual reporting overhead. **AVIS** addresses this challenge by consolidating monitoring data from Zabbix and Veeam into a single, centralized platform. It provides role-based dashboards, intelligent alerting with real-time Telegram notifications, and automated daily, weekly, and monthly reporting via email, supported by AI-assisted insights to help teams maintain visibility, respond faster to issues, and make informed operational decisions.
 
 ---
 
@@ -16,7 +16,6 @@ Modern IT operations teams manage complex infrastructure across multiple monitor
 - **Unified Alert Dashboard** — Centralized view of all alerts with severity-based filtering
 - **Veeam Backup & Replication Integration** — Real-time alarms and VM infrastructure monitoring
 - **Host Management** — Track and manage monitored hosts with detailed metrics
-- **SNMP Trap Handling** — Capture and process SNMP traps from network devices
 
 ### Role-Based Access Control (RBAC)
 - **User Dashboard** (`/dashboard/*`) — Standard monitoring views and reports
@@ -28,10 +27,8 @@ Modern IT operations teams manage complex infrastructure across multiple monitor
 - **AI-Powered Insights** — Intelligent analysis and recommendations for alerts
 
 ### Additional Features
-- **Command Palette** — Quick navigation and actions via keyboard shortcuts
 - **Dark/Light Theme Toggle** — User-configurable theme preference
 - **Responsive Design** — Optimized for desktop and mobile viewports
-- **Real-time Updates** — WebSocket connectivity indicators for live data
 
 ---
 
@@ -98,8 +95,8 @@ src/
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd nebulacloud
+git clone https://github.com/SentramindAI/AVIS-portal.git
+cd AVIS-portal
 
 # Install dependencies
 npm install
@@ -122,22 +119,6 @@ The application will be available at `http://localhost:5173`
 
 ---
 
-## Build & Deployment
-
-```bash
-# Create production build
-npm run build
-
-# Preview production build locally
-npm run preview
-```
-
-### Deployment
-
-The project includes a `vercel.json` configuration for Vercel deployment. The build output is generated in the `dist/` directory.
-
----
-
 ## External Integrations
 
 The application integrates with external monitoring systems via webhooks:
@@ -146,6 +127,8 @@ The application integrates with external monitoring systems via webhooks:
 |-------------|-----------------|
 | Veeam Alarms | Fetches backup and replication alarm data |
 | Veeam Infrastructure | Fetches VM infrastructure details |
+| Zabbix Alerts | Fetches Zabbix Problems and other details |
+| Zabbix Hosts | Fetches Zabbix hosts and there details |
 
 ---
 
