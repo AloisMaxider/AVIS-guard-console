@@ -3,10 +3,11 @@
  * Keycloak Admin REST API — Users
  *
  * Endpoints proxied:
- *   GET    /users/:id         → Get single user
- *   POST   /users             → Create user
- *   PUT    /users/:id         → Update user (firstName, lastName, email, enabled)
- *   PUT    /users/:id/toggle  → Toggle user enabled/disabled
+ *   GET    /users/:id                 → Get single user
+ *   POST   /users                     → Create user
+ *   PUT    /users/:id                 → Update user (firstName, lastName, email, enabled)
+ *   PUT    /users/:id/toggle          → Toggle user enabled/disabled
+ *   POST   /users/:id/roles/realm     → Assign a realm role to user (body: { roleName })
  */
 import { keycloakAdminFetch } from "../lib/admin-client.ts";
 import { json } from "../lib/helpers.ts";
@@ -17,9 +18,14 @@ export async function handleUsers(req: Request): Promise<Response> {
 
   // Match /users/:id/toggle
   const toggleMatch = path.match(/^\/users\/([^/]+)\/toggle\/?$/);
+
+  // ✅ Match /users/:id/roles/realm
+  const realmRoleMatch = path.match(/^\/users\/([^/]+)\/roles\/realm\/?$/);
+
   // Match /users/:id
   const idMatch = path.match(/^\/users\/([^/]+)\/?$/);
-  const userId = toggleMatch?.[1] || idMatch?.[1];
+
+  const userId = toggleMatch?.[1] || realmRoleMatch?.[1] || idMatch?.[1];
 
   switch (req.method) {
     // ── GET /users/:id ──────────────────────────────────────────────
@@ -30,16 +36,54 @@ export async function handleUsers(req: Request): Promise<Response> {
       if (!response.ok) {
         const err = await response.text();
         console.error("[users] GET failed:", err);
-        return json(
-          { error: "Failed to fetch user", detail: err },
-          response.status
-        );
+        return json({ error: "Failed to fetch user", detail: err }, response.status);
       }
       return json(await response.json());
     }
 
-    // ── POST /users ─────────────────────────────────────────────────
+    // ── POST endpoints ──────────────────────────────────────────────
     case "POST": {
+      // ✅ POST /users/:id/roles/realm
+      if (realmRoleMatch) {
+        if (!userId) return json({ error: "User ID required" }, 400);
+
+        let body: any;
+        try {
+          body = await req.json();
+        } catch {
+          return json({ error: "Invalid JSON body" }, 400);
+        }
+
+        const roleName = body?.roleName;
+        if (!roleName || typeof roleName !== "string") {
+          return json({ error: "roleName (string) is required" }, 400);
+        }
+
+        // 1) fetch the realm role representation
+        const roleRes = await keycloakAdminFetch(`/roles/${encodeURIComponent(roleName)}`);
+        if (!roleRes.ok) {
+          const err = await roleRes.text();
+          console.error("[users] Role lookup failed:", err);
+          return json({ error: "Role not found", detail: err }, roleRes.status);
+        }
+        const roleRep = await roleRes.json();
+
+        // 2) assign realm role to user
+        const mapRes = await keycloakAdminFetch(`/users/${userId}/role-mappings/realm`, {
+          method: "POST",
+          body: JSON.stringify([roleRep]),
+        });
+
+        if (mapRes.status === 204 || mapRes.ok) {
+          return json({ success: true });
+        }
+
+        const err = await mapRes.text();
+        console.error("[users] Role assign failed:", err);
+        return json({ error: "Failed to assign role", detail: err }, mapRes.status);
+      }
+
+      // ── POST /users (create user) ──
       if (userId) {
         return json({ error: "Use PUT to update existing users" }, 400);
       }
@@ -79,9 +123,7 @@ export async function handleUsers(req: Request): Promise<Response> {
       }
 
       if (temporaryPassword && typeof temporaryPassword === "string") {
-        userRep.credentials = [
-          { type: "password", value: temporaryPassword, temporary: true },
-        ];
+        userRep.credentials = [{ type: "password", value: temporaryPassword, temporary: true }];
       }
 
       const response = await keycloakAdminFetch("/users", {
@@ -97,10 +139,7 @@ export async function handleUsers(req: Request): Promise<Response> {
 
       const err = await response.text();
       console.error("[users] Create failed:", err);
-      return json(
-        { error: "Failed to create user", detail: err },
-        response.status
-      );
+      return json({ error: "Failed to create user", detail: err }, response.status);
     }
 
     // ── PUT /users/:id OR /users/:id/toggle ─────────────────────────
@@ -128,10 +167,7 @@ export async function handleUsers(req: Request): Promise<Response> {
 
         const err = await updateRes.text();
         console.error("[users] Toggle failed:", err);
-        return json(
-          { error: "Failed to toggle user", detail: err },
-          updateRes.status
-        );
+        return json({ error: "Failed to toggle user", detail: err }, updateRes.status);
       }
 
       // ── Regular update ──
@@ -159,10 +195,7 @@ export async function handleUsers(req: Request): Promise<Response> {
 
       const err = await response.text();
       console.error("[users] Update failed:", err);
-      return json(
-        { error: "Failed to update user", detail: err },
-        response.status
-      );
+      return json({ error: "Failed to update user", detail: err }, response.status);
     }
 
     default:
