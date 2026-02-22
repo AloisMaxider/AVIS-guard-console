@@ -4,6 +4,7 @@
  * Includes Add User functionality with role selection + invitation email
  */
 import { useState, useMemo } from "react";
+import { logAuditEvent, AUDIT_EVENTS } from "@/audit-logs";
 import {
   Users, User, XCircle, RefreshCw, Mail, Shield,
   UserPlus, Loader2,
@@ -103,6 +104,7 @@ const UsersDrilldown = ({ orgId, orgName, users, loading, error, onRefresh, onIt
   const openCreate = () => {
     resetForm();
     setShowCreateDialog(true);
+    logAuditEvent(AUDIT_EVENTS.DIALOG_OPEN, { section: 'SuperAdmin_CreateUser', entity_type: 'organization', entity_id: orgId });
   };
 
   const handleCreate = async () => {
@@ -166,6 +168,7 @@ const UsersDrilldown = ({ orgId, orgName, users, loading, error, onRefresh, onIt
         });
       } else {
         toast({ title: "User created and invitation sent", description: `Invitation email sent to ${formData.email}` });
+        logAuditEvent(AUDIT_EVENTS.USER_CREATE, { entity_type: 'user', entity_id: userId, result: 'success', meta: { role: formData.role, orgId } });
       }
 
       setShowCreateDialog(false);
