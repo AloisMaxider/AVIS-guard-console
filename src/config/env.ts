@@ -65,3 +65,7 @@ export const KEYCLOAK_EVENTS_URL =
 export const KEYCLOAK_ADMIN_EVENTS_URL =
   import.meta.env.VITE_KEYCLOAK_ADMIN_EVENTS_URL ||
   `${KEYCLOAK_URL.replace(/\/$/, '')}/admin/realms/${KEYCLOAK_REALM}/admin-events`;
+
+// ─── Frontend Audit Logs ────────────────────────────────────────────────────
+export const WEBHOOK_AUDIT_LOGS_URL =
+  import.meta.env.VITE_WEBHOOK_AUDIT_LOGS_URL || 'http://localhost:5678/webhook/avis-portal-ingest-logs';

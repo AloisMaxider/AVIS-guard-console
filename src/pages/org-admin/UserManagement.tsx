@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { logAuditEvent, AUDIT_EVENTS } from "@/audit-logs";
 import {
   UserPlus,
   Search,
@@ -109,6 +110,7 @@ const UserManagement = () => {
   const openCreate = () => {
     setFormData({ firstName: "", lastName: "", email: "", temporaryPassword: "" });
     setShowCreateDialog(true);
+    logAuditEvent(AUDIT_EVENTS.DIALOG_OPEN, { section: 'CreateUser' });
   };
 
   const openEdit = (user: KeycloakMember) => {
@@ -182,6 +184,7 @@ const UserManagement = () => {
 
     setSubmitting(false);
     toast({ title: "User created and added to organization" });
+    logAuditEvent(AUDIT_EVENTS.USER_CREATE, { entity_type: 'user', entity_id: userId, result: 'success' });
     setShowCreateDialog(false);
     refresh();
   };
@@ -199,6 +202,7 @@ const UserManagement = () => {
 
     if (result.success) {
       toast({ title: "User updated successfully" });
+      logAuditEvent(AUDIT_EVENTS.USER_EDIT, { entity_type: 'user', entity_id: editingUser.id, result: 'success', changed_fields: ['firstName', 'lastName', 'email'] });
       setEditingUser(null);
       refresh();
     } else {
@@ -213,6 +217,8 @@ const UserManagement = () => {
   const handleToggle = async (user: KeycloakMember) => {
     const result = await toggleUserEnabled(user.id);
     if (result.success) {
+      const action = result.enabled ? AUDIT_EVENTS.USER_ENABLE : AUDIT_EVENTS.USER_DISABLE;
+      logAuditEvent(action, { entity_type: 'user', entity_id: user.id, result: 'success' });
       toast({
         title: `User ${result.enabled ? "enabled" : "disabled"} successfully`,
       });
