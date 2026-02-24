@@ -142,7 +142,7 @@ export const useGlobalInfrastructureMetrics = ({
 }: UseGlobalInfrastructureMetricsOptions) => {
   const { authenticatedFetch } = useAuthenticatedFetch();
   const abortControllerRef = useRef<AbortController | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
