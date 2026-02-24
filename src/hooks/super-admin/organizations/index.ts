@@ -9,3 +9,14 @@ export { useOrganizationMetrics } from "./useOrganizationMetrics";
 export { useOrganizationDetails } from "./useOrganizationDetails";
 export type { DrilldownCategory } from "./useOrganizationDetails";
 export { useOrganizationVeeamMetrics } from "./useOrganizationVeeamMetrics";
+export { useGlobalInfrastructureMetrics } from "./useGlobalInfrastructureMetrics";
+export type {
+  GlobalScope,
+  GlobalTimeRange,
+  GlobalAlertItem,
+  GlobalHostItem,
+  GlobalReportItem,
+  GlobalInsightItem,
+  GlobalVeeamJobItem,
+  CategoryBreakdownRow,
+} from "./useGlobalInfrastructureMetrics";
