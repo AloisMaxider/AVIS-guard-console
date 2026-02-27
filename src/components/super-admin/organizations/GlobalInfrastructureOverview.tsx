@@ -21,7 +21,7 @@ import {
   type GlobalHostItem,
   type GlobalInsightItem,
   type GlobalReportItem,
-  type GlobalVeeamJobItem,
+  type GlobalVeeamDrilldownData,
   type GlobalMetricSummary,
   requestGlobalReportsDetails,
 } from "@/hooks/super-admin/organizations/useGlobalInfrastructureMetrics";
@@ -37,7 +37,7 @@ import TablePagination from "@/components/ui/table-pagination";
 import ZabbixMetricsDrilldown from "./drilldown/ZabbixMetricsDrilldown";
 import ReportsDrilldown from "./drilldown/ReportsDrilldown";
 import InsightsDrilldown from "./drilldown/InsightsDrilldown";
-import VeeamDrilldown from "./drilldown/VeeamDrilldown";
+import VeeamMetricsDrilldown from "./VeeamMetricsDrilldown";
 import { DrilldownDetailDrawer } from "./drilldown/detail";
 
 type GlobalCardCategory = "zabbix_metrics" | "reports" | "insights" | "veeam";
@@ -50,7 +50,7 @@ interface GlobalInfrastructureOverviewProps {
   hosts: GlobalHostItem[];
   reports: GlobalReportItem[];
   insights: GlobalInsightItem[];
-  veeamJobs: GlobalVeeamJobItem[];
+  veeamDrilldownData: GlobalVeeamDrilldownData;
   alertsBreakdown: CategoryBreakdownRow[];
   hostsBreakdown: CategoryBreakdownRow[];
   reportsBreakdown: CategoryBreakdownRow[];
@@ -119,7 +119,7 @@ const GlobalInfrastructureOverview = ({
   hosts,
   reports,
   insights,
-  veeamJobs,
+  veeamDrilldownData,
   alertsBreakdown,
   hostsBreakdown,
   reportsBreakdown,
@@ -429,15 +429,11 @@ const GlobalInfrastructureOverview = ({
               )}
 
               {selectedCategory === "veeam" && (
-                <VeeamDrilldown
+                <VeeamMetricsDrilldown
                   orgName="Selected Organizations"
-                  jobs={veeamJobs}
-                  loading={loading}
-                  error={null}
-                  onRefresh={onRefresh}
-                  onItemClick={(item) => {
-                    setSelectedItem(item);
-                    setDrawerOpen(true);
+                  preloadedData={{
+                    ...veeamDrilldownData,
+                    onRefresh,
                   }}
                 />
               )}

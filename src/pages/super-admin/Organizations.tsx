@@ -126,7 +126,7 @@ const Organizations = () => {
       setGlobalSelectedOrgIds([globalOrganizations[0].id]);
     }
   }, [globalScope, globalSelectedOrgIds, globalOrganizations]);
-
+  
   const {
     loading: globalLoading,
     error: globalError,
@@ -138,7 +138,7 @@ const Organizations = () => {
     hosts: globalHosts,
     reports: globalReports,
     insights: globalInsights,
-    veeamJobs: globalVeeamJobs,
+    veeamDrilldownData,
     alertsBreakdown,
     hostsBreakdown,
     reportsBreakdown,
@@ -261,7 +261,7 @@ const Organizations = () => {
               hosts={globalHosts}
               reports={globalReports}
               insights={globalInsights}
-              veeamJobs={globalVeeamJobs}
+              veeamDrilldownData={veeamDrilldownData}
               alertsBreakdown={alertsBreakdown}
               hostsBreakdown={hostsBreakdown}
               reportsBreakdown={reportsBreakdown}
