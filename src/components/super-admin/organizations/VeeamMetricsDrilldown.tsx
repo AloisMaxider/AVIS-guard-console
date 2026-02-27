@@ -3,7 +3,7 @@
  * Comprehensive tabbed view mirroring the User Dashboard Veeam Metrics.
  * Tabs: Backup & Replication | Infrastructure | Alarms
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HardDrive,
   Server,
@@ -73,7 +73,10 @@ interface VeeamMetricsDrilldownProps {
   clientId?: number | null;
   preloadedData?: PreloadedVeeamMetricsData;
   onRefresh?: () => void;
+  onSectionChange?: (section: VeeamSectionTab) => void;
 }
+
+export type VeeamSectionTab = "backup" | "infrastructure" | "alarms";
 
 // ── Pagination control ──────────────────────────────────────────────────────
 function PaginationBar({
@@ -172,6 +175,7 @@ const VeeamMetricsDrilldown = ({
   orgName,
   clientId = null,
   preloadedData,
+  onSectionChange,
 }: VeeamMetricsDrilldownProps) => {
   // ✅ Only enable hook when clientId is valid (> 0)
   const isGlobalPreloaded = Boolean(preloadedData);
@@ -182,7 +186,11 @@ const VeeamMetricsDrilldown = ({
     preloadedData,
   });
 
-  const [activeTab, setActiveTab] = useState("backup");
+  const [activeTab, setActiveTab] = useState<VeeamSectionTab>("backup");
+
+  useEffect(() => {
+    onSectionChange?.(activeTab);
+  }, [activeTab, onSectionChange]);
 
   if (!enabled) {
     return (

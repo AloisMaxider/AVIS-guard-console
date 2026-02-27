@@ -38,7 +38,7 @@ import TablePagination from "@/components/ui/table-pagination";
 import ZabbixMetricsDrilldown from "./drilldown/ZabbixMetricsDrilldown";
 import ReportsDrilldown from "./drilldown/ReportsDrilldown";
 import InsightsDrilldown from "./drilldown/InsightsDrilldown";
-import VeeamMetricsDrilldown from "./VeeamMetricsDrilldown";
+import VeeamMetricsDrilldown, { type VeeamSectionTab } from "./VeeamMetricsDrilldown";
 import { DrilldownDetailDrawer } from "./drilldown/detail";
 
 type GlobalCardCategory = "zabbix_metrics" | "reports" | "insights" | "veeam";
@@ -138,6 +138,7 @@ const GlobalInfrastructureOverview = ({
   >(null);
   const [breakdownPage, setBreakdownPage] = useState(1);
   const [reportsDetailsRequested, setReportsDetailsRequested] = useState(false);
+  const [activeVeeamSection, setActiveVeeamSection] = useState<VeeamSectionTab>("backup");
 
   useEffect(() => {
     setBreakdownPage(1);
@@ -154,6 +155,9 @@ const GlobalInfrastructureOverview = ({
 
   const handleCardClick = (category: GlobalCardCategory) => {
     setSelectedCategory((prev) => (prev === category ? null : category));
+    if (category === "veeam") {
+      setActiveVeeamSection("backup");
+    }
     setSelectedItem(null);
     setDrawerOpen(false);
   };
@@ -210,22 +214,49 @@ const GlobalInfrastructureOverview = ({
           rows: filterRows(insightsBreakdown),
         };
       case "veeam":
-        return {
-          title: "Veeam Breakdown by Organization",
-          secondaryLabel: "Success",
-          tertiaryLabel: "Failed",
-          rows: filterRows(veeamBreakdown),
-        };
+        {
+          const sectionBreakdowns = veeamDrilldownData.sectionBreakdowns;
+          const backupRows = sectionBreakdowns?.backup ?? veeamBreakdown;
+          const infrastructureRows = sectionBreakdowns?.infrastructure ?? [];
+          const alarmsRows = sectionBreakdowns?.alarms ?? [];
+
+          if (activeVeeamSection === "infrastructure") {
+            return {
+              title: "Veeam Infrastructure Breakdown by Organization",
+              secondaryLabel: "Protected",
+              tertiaryLabel: "Unprotected",
+              rows: filterRows(infrastructureRows),
+            };
+          }
+
+          if (activeVeeamSection === "alarms") {
+            return {
+              title: "Veeam Alarms Breakdown by Organization",
+              secondaryLabel: "Active",
+              tertiaryLabel: "Resolved",
+              rows: filterRows(alarmsRows),
+            };
+          }
+
+          return {
+            title: "Veeam Backup & Replication Breakdown by Organization",
+            secondaryLabel: "Success",
+            tertiaryLabel: "Failed",
+            rows: filterRows(backupRows),
+          };
+        }
       default:
         return null;
     }
   }, [
     selectedCategory,
+    activeVeeamSection,
     organizationSearchQuery,
     alertsBreakdown,
     hostsBreakdown,
     reportsBreakdown,
     insightsBreakdown,
+    veeamDrilldownData.sectionBreakdowns,
     veeamBreakdown,
   ]);
 
@@ -447,6 +478,7 @@ const GlobalInfrastructureOverview = ({
                     ...veeamDrilldownData,
                     onRefresh,
                   }}
+                  onSectionChange={setActiveVeeamSection}
                 />
               )}
 

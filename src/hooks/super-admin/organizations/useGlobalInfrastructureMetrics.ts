@@ -58,7 +58,17 @@ export type GlobalVeeamJobItem = VeeamJobItem & {
   clientId: number | null;
 };
 
-export type GlobalVeeamDrilldownData = PreloadedVeeamMetricsData;
+export type VeeamBreakdownSection = "backup" | "infrastructure" | "alarms";
+
+export interface VeeamSectionBreakdowns {
+  backup: CategoryBreakdownRow[];
+  infrastructure: CategoryBreakdownRow[];
+  alarms: CategoryBreakdownRow[];
+}
+
+export type GlobalVeeamDrilldownData = PreloadedVeeamMetricsData & {
+  sectionBreakdowns?: VeeamSectionBreakdowns;
+};
 
 export interface GlobalMetricSummary {
   alerts: { total: number; active: number; critical: number };
@@ -513,8 +523,8 @@ export const useGlobalInfrastructureMetrics = ({
               const zbxRaw = asRecord(item.zbx_raw);
               const clientId = toNumberOrNull(item?.client_id ?? item?.clientId);
               const org = clientId ? orgMapByClientId.get(clientId) : undefined;
-              const timestampValue = item?.created_at ?? item?.first_seen ?? item?.last_seen_at;
-              const timestamp = timestampValue ? new Date(timestampValue) : new Date();
+              const timestampValue = item.created_at ?? item.first_seen ?? item.last_seen_at;
+              const timestamp = toDateOrUndefined(timestampValue) ?? new Date();
               return {
                 id: String(item?.eventid ?? item?.id ?? `global-alert-${index}`),
                 title: String(item?.problem_name ?? item?.description ?? item?.title ?? "Alert"),
@@ -614,11 +624,13 @@ export const useGlobalInfrastructureMetrics = ({
             const mapped: GlobalInsightItem[] = parsed.data.map((entry, index) => {
               const item = asRecord(entry);
               const meta = asRecord(item.meta);
-              const clientId = toNumberOrNull(item?.client_id ?? item?.clientId ?? item?.meta?.client_id);
-              const effectiveClientId = clientId ?? toNumberOrNull(meta.client_id);
+              const clientId = toNumberOrNull(
+                item.client_id ?? item.clientId ?? meta.client_id ?? meta.clientId
+              );
+              const effectiveClientId = clientId ?? toNumberOrNull(meta.client_id ?? meta.clientId);
               const org = effectiveClientId ? orgMapByClientId.get(effectiveClientId) : undefined;
-              const timestampValue = item?.created_at ?? item?.timestamp ?? item?.time;
-              const timestamp = timestampValue ? new Date(timestampValue) : new Date();
+              const timestampValue = item.created_at ?? item.timestamp ?? item.time;
+              const timestamp = toDateOrUndefined(timestampValue) ?? new Date();
               return {
                 id: String(item?.id ?? item?.insight_id ?? `global-insight-${index}`),
                 type: String(item?.type ?? item?.insight_type ?? item?.category ?? "insight"),
@@ -1092,16 +1104,224 @@ export const useGlobalInfrastructureMetrics = ({
 
   const veeamJobs = filteredVeeam.jobs;
 
+  const veeamAggregates = useMemo(() => {
+    const ensureRow = (
+      map: Map<
+        string,
+        {
+          organizationId: string;
+          organizationName: string;
+          total: number;
+          secondary: number;
+          tertiary: number;
+        }
+      >,
+      clientId: number | null
+    ) => {
+      const orgRef = resolveOrg(clientId);
+      let row = map.get(orgRef.key);
+      if (!row) {
+        row = {
+          organizationId: orgRef.organizationId,
+          organizationName: orgRef.organizationName,
+          total: 0,
+          secondary: 0,
+          tertiary: 0,
+        };
+        map.set(orgRef.key, row);
+      }
+      return row;
+    };
+
+    const rowsFromMap = (
+      map: Map<
+        string,
+        {
+          organizationId: string;
+          organizationName: string;
+          total: number;
+          secondary: number;
+          tertiary: number;
+        }
+      >
+    ): CategoryBreakdownRow[] =>
+      Array.from(map.values())
+        .map((row) => ({
+          organizationId: row.organizationId,
+          organizationName: row.organizationName,
+          total: row.total,
+          secondary: row.secondary,
+          tertiary: row.tertiary,
+        }))
+        .sort((a, b) => b.total - a.total || a.organizationName.localeCompare(b.organizationName));
+
+    const sumRows = (rows: CategoryBreakdownRow[]) => {
+      let total = 0;
+      let secondary = 0;
+      let tertiary = 0;
+      for (let index = 0; index < rows.length; index += 1) {
+        total += rows[index].total;
+        secondary += rows[index].secondary;
+        tertiary += rows[index].tertiary;
+      }
+      return { total, secondary, tertiary };
+    };
+
+    const resolveOrg = (clientId: number | null) => {
+      if (clientId == null) {
+        return {
+          key: "unknown",
+          organizationId: "unknown",
+          organizationName: "Unknown Organization",
+        };
+      }
+
+      const org = orgMapByClientId.get(clientId);
+      if (org) {
+        return {
+          key: org.id,
+          organizationId: org.id,
+          organizationName: org.name,
+        };
+      }
+
+      return {
+        key: `unknown-${clientId}`,
+        organizationId: `unknown-${clientId}`,
+        organizationName: `Unknown Organization (${clientId})`,
+      };
+    };
+
+    const backupMap = new Map<
+      string,
+      {
+        organizationId: string;
+        organizationName: string;
+        total: number;
+        secondary: number;
+        tertiary: number;
+      }
+    >();
+    const infrastructureMap = new Map<
+      string,
+      {
+        organizationId: string;
+        organizationName: string;
+        total: number;
+        secondary: number;
+        tertiary: number;
+      }
+    >();
+    const alarmsMap = new Map<
+      string,
+      {
+        organizationId: string;
+        organizationName: string;
+        total: number;
+        secondary: number;
+        tertiary: number;
+      }
+    >();
+    const combinedMap = new Map<
+      string,
+      {
+        organizationId: string;
+        organizationName: string;
+        total: number;
+        secondary: number;
+        tertiary: number;
+      }
+    >();
+
+    // Backup & Replication: Total / Success / Failed
+    for (let index = 0; index < filteredVeeam.jobs.length; index += 1) {
+      const job = filteredVeeam.jobs[index];
+      const severity = String(job.severity).toLowerCase();
+      const isSuccess = severity === "success";
+      const row = ensureRow(backupMap, job.clientId ?? null);
+      row.total += 1;
+      row.secondary += isSuccess ? 1 : 0;
+      row.tertiary += isSuccess ? 0 : 1;
+    }
+
+    // Infrastructure: Total / Protected / Unprotected
+    for (let index = 0; index < filteredVeeam.infraVMs.length; index += 1) {
+      const vm = filteredVeeam.infraVMs[index] as unknown as Record<string, unknown>;
+      const clientId = toNumberOrNull(vm.client_id ?? vm.clientId);
+      const metrics = asRecord(asRecord(vm.raw_json).vm_metrics);
+      const isProtected = Boolean(metrics.isProtected);
+      const row = ensureRow(infrastructureMap, clientId);
+      row.total += 1;
+      row.secondary += isProtected ? 1 : 0;
+      row.tertiary += isProtected ? 0 : 1;
+    }
+
+    // Alarms: Total / Active / Resolved
+    for (let index = 0; index < filteredVeeam.alarmItems.length; index += 1) {
+      const alarm = filteredVeeam.alarmItems[index];
+      const isResolved = String(alarm.status).toLowerCase() === "resolved";
+      const row = ensureRow(alarmsMap, toNumberOrNull(alarm.client_id));
+      row.total += 1;
+      row.secondary += isResolved ? 0 : 1;
+      row.tertiary += isResolved ? 1 : 0;
+    }
+
+    const backupRows = rowsFromMap(backupMap);
+    const infrastructureRows = rowsFromMap(infrastructureMap);
+    const alarmsRows = rowsFromMap(alarmsMap);
+
+    // Combined summary for card: merge the three section row sets
+    const mergeRows = (rows: CategoryBreakdownRow[]) => {
+      for (let index = 0; index < rows.length; index += 1) {
+        const row = rows[index];
+        const existing = combinedMap.get(row.organizationId);
+        if (!existing) {
+          combinedMap.set(row.organizationId, {
+            organizationId: row.organizationId,
+            organizationName: row.organizationName,
+            total: row.total,
+            secondary: row.secondary,
+            tertiary: row.tertiary,
+          });
+          continue;
+        }
+        existing.total += row.total;
+        existing.secondary += row.secondary;
+        existing.tertiary += row.tertiary;
+      }
+    };
+
+    mergeRows(backupRows);
+    mergeRows(infrastructureRows);
+    mergeRows(alarmsRows);
+
+    const combinedRows = rowsFromMap(combinedMap);
+    const combined = sumRows(combinedRows);
+
+    return {
+      sectionBreakdowns: {
+        backup: backupRows,
+        infrastructure: infrastructureRows,
+        alarms: alarmsRows,
+      } as VeeamSectionBreakdowns,
+      rows: combinedRows,
+      total: combined.total,
+      success: combined.secondary,
+      failed: combined.tertiary,
+    }
+  }, [filteredVeeam, orgMapByClientId]);
+
   const veeamDrilldownData = useMemo<GlobalVeeamDrilldownData>(
     () => ({
       brData: filteredVeeam.brData,
       infraVMs: filteredVeeam.infraVMs,
       alarmItems: filteredVeeam.alarmItems,
+      sectionBreakdowns: veeamAggregates.sectionBreakdowns,
       loading,
       error,
       lastUpdated,
     }),
-    [filteredVeeam, loading, error, lastUpdated]
+    [filteredVeeam, veeamAggregates, loading, error, lastUpdated]
   );
 
   const summary = useMemo<GlobalMetricSummary>(
@@ -1131,25 +1351,21 @@ export const useGlobalInfrastructureMetrics = ({
         anomalies: insights.filter((i) => typeOfInsight(i.type).includes("anomal")).length,
       },
       veeam: {
-        jobs: veeamJobs.length,
-        success: veeamJobs.filter((j) => String(j.severity).toLowerCase() === "success").length,
-        failed: veeamJobs.filter((j) => {
-          const sev = String(j.severity).toLowerCase();
-          return sev === "failed" || sev === "error";
-        }).length,
-        infraVMs: filteredVeeam.infraVMs.length,
-        alarms: filteredVeeam.alarmItems.length,
+        jobs: veeamAggregates.total,
+        success: veeamAggregates.success,
+        failed: veeamAggregates.failed,
       },
     }),
-    [alerts, hosts, filteredReportsMeta, insights, veeamJobs]
+    [alerts, hosts, filteredReportsMeta, insights, veeamAggregates]
   );
 
   const buildBreakdown = useCallback(
-    (
-      rows: Array<{ organizationId: string | null; organizationName: string; [k: string]: unknown }>,
-      mapper: (items: Array<Record<string, unknown>>) => { total: number; secondary: number; tertiary: number }
+    <T extends { organizationId: string | null; organizationName: string }>(
+      rows: T[],
+      mapper: (items: T[]) => { total: number; secondary: number; tertiary: number }
     ): CategoryBreakdownRow[] => {
-      const grouped = new Map<string, Array<Record<string, unknown>>>();
+      const grouped = new Map<string, T[]>();
+
       rows.forEach((row) => {
         const orgId = row.organizationId ?? "unknown";
         if (!grouped.has(orgId)) grouped.set(orgId, []);
@@ -1161,10 +1377,13 @@ export const useGlobalInfrastructureMetrics = ({
           const baseOrg =
             orgMapById.get(orgId) ??
             organizations.find((o) => o.name === items[0]?.organizationName);
+
           const metrics = mapper(items);
+
           return {
             organizationId: baseOrg?.id ?? orgId,
-            organizationName: baseOrg?.name ?? String(items[0]?.organizationName ?? "Unknown Organization"),
+            organizationName:
+              baseOrg?.name ?? String(items[0]?.organizationName ?? "Unknown Organization"),
             ...metrics,
           };
         })
@@ -1221,18 +1440,7 @@ export const useGlobalInfrastructureMetrics = ({
     [insights, buildBreakdown]
   );
 
-  const veeamBreakdown = useMemo(
-    () =>
-      buildBreakdown(veeamJobs, (items) => ({
-        total: items.length,
-        secondary: items.filter((j) => String(j.severity).toLowerCase() === "success").length,
-        tertiary: items.filter((j) => {
-          const sev = String(j.severity).toLowerCase();
-          return sev === "failed" || sev === "error";
-        }).length,
-      })),
-    [veeamJobs, buildBreakdown]
-  );
+  const veeamBreakdown = useMemo(() => veeamAggregates.rows, [veeamAggregates]);
 
   return {
     loading,
