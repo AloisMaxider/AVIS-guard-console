@@ -18,7 +18,7 @@ import type {
 } from "./useOrganizationDetails";
 
 export type GlobalScope = "all" | "specific";
-export type GlobalTimeRange = "24h" | "7d" | "30d" | "custom";
+export type GlobalTimeRange = "24h" | "7d" | "30d" | "custom" | "all";
 
 export type GlobalAlertItem = AlertItem & {
   organizationId: string | null;
@@ -66,6 +66,15 @@ export interface CategoryBreakdownRow {
   tertiary: number;
 }
 
+interface GlobalReportLiteItem {
+  id: string;
+  organizationId: string | null;
+  organizationName: string;
+  clientId: number | null;
+  reportType: string;
+  createdAtMs: number;
+}
+
 interface UseGlobalInfrastructureMetricsOptions {
   organizations: Organization[];
   scope: GlobalScope;
@@ -78,6 +87,15 @@ interface UseGlobalInfrastructureMetricsOptions {
 
 const REFRESH_INTERVAL = 60_000;
 type UnknownRecord = Record<string, unknown>;
+
+let reportsDetailsRequestedGlobal = false;
+const reportsDetailsSubscribers = new Set<() => void>();
+
+export const requestGlobalReportsDetails = () => {
+  if (reportsDetailsRequestedGlobal) return;
+  reportsDetailsRequestedGlobal = true;
+  reportsDetailsSubscribers.forEach((notify) => notify());
+};
 
 const toNumberOrNull = (value: unknown): number | null => {
   const n = Number(value);
@@ -93,15 +111,144 @@ const inferSeverity = (value: unknown): string => {
 const asRecord = (value: unknown): UnknownRecord =>
   value && typeof value === "object" ? (value as UnknownRecord) : {};
 
+const extractReportsRecords = (value: unknown): UnknownRecord[] => {
+  if (Array.isArray(value)) {
+    return value.map(asRecord);
+  }
+  const root = asRecord(value);
+  const candidates = [root.reports, root.items, root.data, root.results];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate.map(asRecord);
+    }
+  }
+  return [];
+};
+
+const extractClientIdFromRecord = (record: UnknownRecord): number | null => {
+  const meta = asRecord(record.meta);
+  const org = asRecord(record.organization);
+  const nestedOrg = asRecord(record.org);
+  return (
+    toNumberOrNull(record.client_id ?? record.clientId) ??
+    toNumberOrNull(meta.client_id ?? meta.clientId) ??
+    toNumberOrNull(org.client_id ?? org.clientId) ??
+    toNumberOrNull(nestedOrg.client_id ?? nestedOrg.clientId)
+  );
+};
+
+const normalizeReportType = (record: UnknownRecord): string => {
+  const raw = String(
+    record.report_type ?? record.type ?? record.frequency ?? record.period ?? "daily"
+  )
+    .trim()
+    .toLowerCase();
+  if (raw === "day") return "daily";
+  if (raw === "week") return "weekly";
+  if (raw === "month") return "monthly";
+  return raw;
+};
+
+const extractReportTimestamp = (record: UnknownRecord): number => {
+  const value =
+    record.created_at ??
+    record.createdAt ??
+    record.generated_at ??
+    record.generatedAt ??
+    record.timestamp ??
+    record.time ??
+    record.date;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value > 1_000_000_000_000 ? value : value * 1000;
+  }
+  const parsed = value ? new Date(String(value)).getTime() : NaN;
+  if (Number.isFinite(parsed)) return parsed;
+  return Date.now();
+};
+
+const extractReportId = (
+  record: UnknownRecord,
+  fallbackIndex: number,
+  reportType: string,
+  createdAtMs: number,
+  clientId: number | null
+): string =>
+  String(
+    record.id ??
+    record.report_id ??
+    record.uuid ??
+    record.guid ??
+    `${clientId ?? "na"}-${reportType}-${createdAtMs}-${fallbackIndex}`
+  );
+
+const normalizeReportTemplate = (record: UnknownRecord): string | undefined => {
+  const template = record.report_template;
+  if (typeof template === "string") return template;
+  return undefined;
+};
+
+const mapReportRecord = (
+  record: UnknownRecord,
+  index: number,
+  orgMapByClientId: Map<number, Organization>
+): { lite: GlobalReportLiteItem; detail: GlobalReportItem } => {
+  const clientId = extractClientIdFromRecord(record);
+  const org = clientId != null ? orgMapByClientId.get(clientId) : undefined;
+  const reportType = normalizeReportType(record);
+  const createdAtMs = extractReportTimestamp(record);
+  const id = extractReportId(record, index, reportType, createdAtMs, clientId);
+  const name = String(
+    record.name ??
+    record.title ??
+    record.report_name ??
+    record.reportTitle ??
+    `${reportType} report`
+  );
+  const status = String(record.status ?? record.state ?? "completed");
+  const createdAt = new Date(createdAtMs);
+  const organizationId = org?.id ?? null;
+  const organizationName = org?.name ?? "Unknown Organization";
+  const template = normalizeReportTemplate(record);
+
+  return {
+    lite: {
+      id,
+      organizationId,
+      organizationName,
+      clientId,
+      reportType,
+      createdAtMs,
+    },
+    detail: {
+      id,
+      name,
+      report_type: reportType,
+      report_template: template,
+      status,
+      created_at: createdAt,
+      client_id: clientId ?? undefined,
+      organizationId,
+      organizationName,
+      clientId,
+    },
+  };
+};
+
 const getTimeCutoff = (
   timeRange: GlobalTimeRange,
   customDateFrom?: Date,
   customDateTo?: Date
 ) => {
   const now = Date.now();
+
+  if (timeRange === "all") {
+    return { from: undefined, to: undefined }; 
+  }
+
   if (timeRange === "24h") return { from: new Date(now - 24 * 60 * 60 * 1000), to: undefined };
-  if (timeRange === "7d") return { from: new Date(now - 7 * 24 * 60 * 60 * 1000), to: undefined };
+  if (timeRange === "7d")  return { from: new Date(now - 7 * 24 * 60 * 60 * 1000), to: undefined };
   if (timeRange === "30d") return { from: new Date(now - 30 * 24 * 60 * 60 * 1000), to: undefined };
+
   return { from: customDateFrom, to: customDateTo };
 };
 
@@ -117,7 +264,6 @@ const isWithinTimeRange = (date: Date | undefined, from?: Date, to?: Date) => {
   return true;
 };
 
-const typeOfReport = (value: unknown) => String(value ?? "").toLowerCase();
 const typeOfInsight = (value: unknown) => String(value ?? "").toLowerCase();
 
 const getOrgScope = (
@@ -126,7 +272,11 @@ const getOrgScope = (
   selectedOrgIds: string[]
 ) => {
   if (scope === "specific") {
-    return selectedOrgIds.length > 0 ? selectedOrgIds.slice(0, 1) : [];
+    // ───────────────────────────────────────────────────────────────
+    // CHANGED: previously limited to first org → now includes all selected
+    return selectedOrgIds;
+    // If you want to keep single-org behavior in some views, consider
+    // renaming this scope or handling it in the calling component instead.
   }
   return selectedOrgIds;
 };
@@ -151,9 +301,15 @@ export const useGlobalInfrastructureMetrics = ({
 
   const [rawAlerts, setRawAlerts] = useState<GlobalAlertItem[]>([]);
   const [rawHosts, setRawHosts] = useState<GlobalHostItem[]>([]);
-  const [rawReports, setRawReports] = useState<GlobalReportItem[]>([]);
+  const [rawReportLiteItems, setRawReportLiteItems] = useState<GlobalReportLiteItem[]>([]);
+  const [rawReportRecords, setRawReportRecords] = useState<UnknownRecord[]>([]);
+  const [rawReportDetails, setRawReportDetails] = useState<GlobalReportItem[]>([]);
   const [rawInsights, setRawInsights] = useState<GlobalInsightItem[]>([]);
   const [rawVeeamJobs, setRawVeeamJobs] = useState<GlobalVeeamJobItem[]>([]);
+
+  const [reportsDetailsRequested, setReportsDetailsRequested] = useState(
+    reportsDetailsRequestedGlobal
+  );
 
   const orgMapByClientId = useMemo(() => {
     const map = new Map<number, Organization>();
@@ -168,6 +324,14 @@ export const useGlobalInfrastructureMetrics = ({
     organizations.forEach((org) => map.set(org.id, org));
     return map;
   }, [organizations]);
+
+  useEffect(() => {
+    const notify = () => setReportsDetailsRequested(true);
+    reportsDetailsSubscribers.add(notify);
+    return () => {
+      reportsDetailsSubscribers.delete(notify);
+    };
+  }, []);
 
   const fetchAll = useCallback(
     async (silent = false) => {
@@ -196,6 +360,9 @@ export const useGlobalInfrastructureMetrics = ({
           authenticatedFetch(WEBHOOK_BACKUP_REPLICATION_URL, commonPost).catch(() => null),
         ]);
 
+        // ───────────────────────────────────────────────────────────────
+        // Alerts parsing (unchanged)
+        // ───────────────────────────────────────────────────────────────
         if (alertsRes?.ok) {
           const parsed = await safeParseResponse<unknown[]>(alertsRes, WEBHOOK_ALERTS_URL);
           if (parsed.ok && Array.isArray(parsed.data)) {
@@ -229,6 +396,7 @@ export const useGlobalInfrastructureMetrics = ({
           setRawAlerts([]);
         }
 
+        // Hosts parsing (unchanged)
         if (hostsRes?.ok) {
           const parsed = await safeParseResponse<unknown[]>(hostsRes, WEBHOOK_ZABBIX_HOSTS_URL);
           if (parsed.ok && Array.isArray(parsed.data)) {
@@ -263,35 +431,41 @@ export const useGlobalInfrastructureMetrics = ({
           setRawHosts([]);
         }
 
+        // Reports parsing ────────────────────────────────────────────────
         if (reportsRes?.ok) {
-          const parsed = await safeParseResponse<unknown[]>(reportsRes, WEBHOOK_REPORTS_URL);
-          if (parsed.ok && Array.isArray(parsed.data)) {
-            const mapped: GlobalReportItem[] = parsed.data.map((entry, index) => {
-              const item = asRecord(entry);
-              const clientId = toNumberOrNull(item?.client_id ?? item?.clientId);
-              const org = clientId ? orgMapByClientId.get(clientId) : undefined;
-              const createdAt = item?.created_at ? new Date(item.created_at) : new Date();
-              return {
-                id: String(item?.id ?? item?.report_id ?? `global-report-${index}`),
-                name: String(item?.name ?? item?.title ?? "Report"),
-                report_type: String(item?.report_type ?? item?.type ?? "daily"),
-                report_template: typeof item?.report_template === "string" ? item.report_template : undefined,
-                status: String(item?.status ?? "completed"),
-                created_at: createdAt,
-                client_id: clientId ?? undefined,
-                organizationId: org?.id ?? null,
-                organizationName: org?.name ?? "Unknown Organization",
-                clientId,
-              };
-            });
-            setRawReports(mapped);
+          const parsed = await safeParseResponse<unknown>(reportsRes, WEBHOOK_REPORTS_URL);
+          if (parsed.ok && parsed.data != null) {
+            const records = extractReportsRecords(parsed.data);
+            const liteItems: GlobalReportLiteItem[] = [];
+            const detailedItems: GlobalReportItem[] = [];
+
+            for (let index = 0; index < records.length; index += 1) {
+              const mapped = mapReportRecord(records[index], index, orgMapByClientId);
+              liteItems.push(mapped.lite);
+              if (reportsDetailsRequested) {
+                detailedItems.push(mapped.detail);
+              }
+            }
+
+            setRawReportRecords(records);
+            setRawReportLiteItems(liteItems);
+            if (reportsDetailsRequested) {
+              setRawReportDetails(detailedItems);
+            } else {
+              setRawReportDetails([]);
+            }
           } else {
-            setRawReports([]);
+            setRawReportRecords([]);
+            setRawReportLiteItems([]);
+            setRawReportDetails([]);
           }
         } else {
-          setRawReports([]);
+          setRawReportRecords([]);
+          setRawReportLiteItems([]);
+          setRawReportDetails([]);
         }
 
+        // Insights parsing (unchanged)
         if (insightsRes?.ok) {
           const parsed = await safeParseResponse<unknown[]>(insightsRes, WEBHOOK_AI_INSIGHTS_URL);
           if (parsed.ok && Array.isArray(parsed.data)) {
@@ -324,6 +498,7 @@ export const useGlobalInfrastructureMetrics = ({
           setRawInsights([]);
         }
 
+        // Veeam parsing (unchanged)
         if (veeamRes?.ok) {
           const parsed = await safeParseResponse<unknown>(veeamRes, WEBHOOK_BACKUP_REPLICATION_URL);
           if (parsed.ok && parsed.data) {
@@ -343,18 +518,18 @@ export const useGlobalInfrastructureMetrics = ({
                 const backupStatus = asRecord(job.backupStatus);
                 const clientId = toNumberOrNull(
                   job?.client_id ??
-                    job?.clientId ??
-                    parsedJob.client_id ??
-                    parsedJob.clientId ??
-                    vm?.client_id ??
-                    vm?.clientId
+                  job?.clientId ??
+                  parsedJob.client_id ??
+                  parsedJob.clientId ??
+                  vm?.client_id ??
+                  vm?.clientId
                 );
                 const org = clientId ? orgMapByClientId.get(clientId) : undefined;
                 const statusRaw = String(
                   backupStatus.status ??
-                    backupStatus.jobStatus ??
-                    protectionSummary.overallStatus ??
-                    "unknown"
+                  backupStatus.jobStatus ??
+                  protectionSummary.overallStatus ??
+                  "unknown"
                 ).toLowerCase();
                 const severity = statusRaw.includes("success")
                   ? "success"
@@ -398,7 +573,7 @@ export const useGlobalInfrastructureMetrics = ({
         if (!silent) setLoading(false);
       }
     },
-    [authenticatedFetch, enabled, orgMapByClientId]
+    [authenticatedFetch, enabled, orgMapByClientId, reportsDetailsRequested]
   );
 
   useEffect(() => {
@@ -414,6 +589,19 @@ export const useGlobalInfrastructureMetrics = ({
     };
   }, [enabled, fetchAll]);
 
+  useEffect(() => {
+    if (!reportsDetailsRequested) return;
+    if (rawReportRecords.length === 0) {
+      setRawReportDetails([]);
+      return;
+    }
+    const detailedItems = new Array<GlobalReportItem>(rawReportRecords.length);
+    for (let index = 0; index < rawReportRecords.length; index += 1) {
+      detailedItems[index] = mapReportRecord(rawReportRecords[index], index, orgMapByClientId).detail;
+    }
+    setRawReportDetails(detailedItems);
+  }, [reportsDetailsRequested, rawReportRecords, orgMapByClientId]);
+
   const orgScopeIds = useMemo(
     () => getOrgScope(organizations, scope, selectedOrgIds),
     [organizations, scope, selectedOrgIds]
@@ -428,6 +616,14 @@ export const useGlobalInfrastructureMetrics = ({
     () => getTimeCutoff(timeRange, customDateFrom, customDateTo),
     [timeRange, customDateFrom, customDateTo]
   );
+
+  const rangeFromMs = rangeFrom?.getTime();
+  const rangeToMs = useMemo(() => {
+    if (!rangeTo) return undefined;
+    const end = new Date(rangeTo);
+    end.setHours(23, 59, 59, 999);
+    return end.getTime();
+  }, [rangeTo]);
 
   const inScope = useCallback(
     (organizationId: string | null) => {
@@ -448,13 +644,62 @@ export const useGlobalInfrastructureMetrics = ({
 
   const hosts = useMemo(() => rawHosts.filter((item) => inScope(item.organizationId)), [rawHosts, inScope]);
 
-  const reports = useMemo(
-    () =>
-      rawReports.filter(
-        (item) => inScope(item.organizationId) && isWithinTimeRange(item.created_at, rangeFrom, rangeTo)
-      ),
-    [rawReports, inScope, rangeFrom, rangeTo]
-  );
+  const filteredReportsMeta = useMemo(() => {
+    const selectedIds = new Set<string>();
+    const breakdownByOrg = new Map<
+      string,
+      { organizationName: string; total: number; daily: number; weekly: number }
+    >();
+    let total = 0;
+    let daily = 0;
+    let weekly = 0;
+    let monthly = 0;
+
+    for (let index = 0; index < rawReportLiteItems.length; index += 1) {
+      const item = rawReportLiteItems[index];
+      if (!inScope(item.organizationId)) continue;
+      if (rangeFromMs != null && item.createdAtMs < rangeFromMs) continue;
+      if (rangeToMs != null && item.createdAtMs > rangeToMs) continue;
+
+      total += 1;
+      selectedIds.add(item.id);
+
+      if (item.reportType === "daily") daily += 1;
+      else if (item.reportType === "weekly") weekly += 1;
+      else if (item.reportType === "monthly") monthly += 1;
+
+      const key = item.organizationId ?? "unknown";
+      const existing = breakdownByOrg.get(key);
+      if (!existing) {
+        breakdownByOrg.set(key, {
+          organizationName: item.organizationName,
+          total: 1,
+          daily: item.reportType === "daily" ? 1 : 0,
+          weekly: item.reportType === "weekly" ? 1 : 0,
+        });
+      } else {
+        existing.total += 1;
+        if (item.reportType === "daily") existing.daily += 1;
+        if (item.reportType === "weekly") existing.weekly += 1;
+      }
+    }
+
+    return { total, daily, weekly, monthly, selectedIds, breakdownByOrg };
+  }, [rawReportLiteItems, inScope, rangeFromMs, rangeToMs]);
+
+  const reports = useMemo(() => {
+    if (!reportsDetailsRequested) return [];
+    if (filteredReportsMeta.selectedIds.size === 0) return [];
+
+    const items: GlobalReportItem[] = [];
+    for (let index = 0; index < rawReportDetails.length; index += 1) {
+      const report = rawReportDetails[index];
+      if (filteredReportsMeta.selectedIds.has(report.id)) {
+        items.push(report);
+      }
+    }
+    return items;
+  }, [reportsDetailsRequested, rawReportDetails, filteredReportsMeta]);
 
   const insights = useMemo(
     () =>
@@ -488,10 +733,10 @@ export const useGlobalInfrastructureMetrics = ({
         disabled: hosts.filter((h) => h.status !== 0).length,
       },
       reports: {
-        total: reports.length,
-        daily: reports.filter((r) => typeOfReport(r.report_type) === "daily").length,
-        weekly: reports.filter((r) => typeOfReport(r.report_type) === "weekly").length,
-        monthly: reports.filter((r) => typeOfReport(r.report_type) === "monthly").length,
+        total: filteredReportsMeta.total,
+        daily: filteredReportsMeta.daily,
+        weekly: filteredReportsMeta.weekly,
+        monthly: filteredReportsMeta.monthly,
       },
       insights: {
         total: insights.length,
@@ -507,7 +752,7 @@ export const useGlobalInfrastructureMetrics = ({
         }).length,
       },
     }),
-    [alerts, hosts, reports, insights, veeamJobs]
+    [alerts, hosts, filteredReportsMeta, insights, veeamJobs]
   );
 
   const buildBreakdown = useCallback(
@@ -562,15 +807,20 @@ export const useGlobalInfrastructureMetrics = ({
     [hosts, buildBreakdown]
   );
 
-  const reportsBreakdown = useMemo(
-    () =>
-      buildBreakdown(reports, (items) => ({
-        total: items.length,
-        secondary: items.filter((r) => typeOfReport(r.report_type) === "daily").length,
-        tertiary: items.filter((r) => typeOfReport(r.report_type) === "weekly").length,
-      })),
-    [reports, buildBreakdown]
-  );
+  const reportsBreakdown = useMemo(() => {
+    const rows: CategoryBreakdownRow[] = [];
+    filteredReportsMeta.breakdownByOrg.forEach((metrics, orgIdKey) => {
+      const baseOrg = orgMapById.get(orgIdKey);
+      rows.push({
+        organizationId: baseOrg?.id ?? orgIdKey,
+        organizationName: baseOrg?.name ?? metrics.organizationName,
+        total: metrics.total,
+        secondary: metrics.daily,
+        tertiary: metrics.weekly,
+      });
+    });
+    return rows.sort((a, b) => b.total - a.total || a.organizationName.localeCompare(b.organizationName));
+  }, [filteredReportsMeta, orgMapById]);
 
   const insightsBreakdown = useMemo(
     () =>

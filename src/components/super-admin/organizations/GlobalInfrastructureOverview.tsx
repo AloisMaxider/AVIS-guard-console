@@ -23,6 +23,7 @@ import {
   type GlobalReportItem,
   type GlobalVeeamJobItem,
   type GlobalMetricSummary,
+  requestGlobalReportsDetails,
 } from "@/hooks/super-admin/organizations/useGlobalInfrastructureMetrics";
 import type {
   AlertItem,
@@ -133,10 +134,20 @@ const GlobalInfrastructureOverview = ({
     AlertItem | HostItem | ReportItem | InsightItem | VeeamJobItem | null
   >(null);
   const [breakdownPage, setBreakdownPage] = useState(1);
+  const [reportsDetailsRequested, setReportsDetailsRequested] = useState(false);
 
   useEffect(() => {
     setBreakdownPage(1);
   }, [selectedCategory, organizationSearchQuery]);
+
+  // ✅ FIX: request details + immediately refetch so report list populates right away
+  useEffect(() => {
+    if (selectedCategory !== "reports") return;
+    if (reportsDetailsRequested) return;
+    requestGlobalReportsDetails();
+    setReportsDetailsRequested(true);
+    onRefresh(); // important to populate details immediately
+  }, [selectedCategory, reportsDetailsRequested, onRefresh]);
 
   const handleCardClick = (category: GlobalCardCategory) => {
     setSelectedCategory((prev) => (prev === category ? null : category));
@@ -243,6 +254,16 @@ const GlobalInfrastructureOverview = ({
     return maybeOrganizationName.organizationName ?? "Selected Organizations";
   }, [selectedItem]);
 
+  const reportsLoading = useMemo(
+    () =>
+      loading ||
+      (selectedCategory === "reports" &&
+        reportsDetailsRequested &&
+        summary.reports.total > 0 &&
+        reports.length === 0),
+    [loading, selectedCategory, reportsDetailsRequested, summary.reports.total, reports.length]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -311,7 +332,7 @@ const GlobalInfrastructureOverview = ({
         <ClickableMetricCard
           title="Reports"
           icon={FileText}
-          loading={loading}
+          loading={reportsLoading}
           iconColor="text-secondary"
           isSelected={selectedCategory === "reports"}
           onClick={() => handleCardClick("reports")}
@@ -383,7 +404,7 @@ const GlobalInfrastructureOverview = ({
                 <ReportsDrilldown
                   orgName="Selected Organizations"
                   reports={reports}
-                  loading={loading}
+                  loading={reportsLoading}
                   error={null}
                   onRefresh={onRefresh}
                   onItemClick={(item) => {
@@ -425,7 +446,9 @@ const GlobalInfrastructureOverview = ({
                 <Card className="p-4 border-border/50">
                   <h4 className="font-semibold mb-3">{breakdownMeta.title}</h4>
                   {breakdownMeta.rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No organizations match the current filters.</p>
+                    <p className="text-sm text-muted-foreground">
+                      No organizations match the current filters.
+                    </p>
                   ) : (
                     <>
                       <div className="rounded-lg border border-border/50 overflow-hidden">
@@ -456,10 +479,7 @@ const GlobalInfrastructureOverview = ({
                         totalPages={totalBreakdownPages}
                         totalItems={breakdownMeta.rows.length}
                         startIndex={(breakdownPage - 1) * BREAKDOWN_PAGE_SIZE}
-                        endIndex={Math.min(
-                          breakdownPage * BREAKDOWN_PAGE_SIZE,
-                          breakdownMeta.rows.length
-                        )}
+                        endIndex={Math.min(breakdownPage * BREAKDOWN_PAGE_SIZE, breakdownMeta.rows.length)}
                         itemName="organizations"
                         onPageChange={setBreakdownPage}
                       />

@@ -83,7 +83,7 @@ const Organizations = () => {
   const [globalScope, setGlobalScope] = useState<GlobalScope>("all");
   const [globalSelectedOrgIds, setGlobalSelectedOrgIds] = useState<string[]>([]);
   const [globalSearchQuery, setGlobalSearchQuery] = useState("");
-  const [globalTimeRange, setGlobalTimeRange] = useState<GlobalTimeRange>("24h");
+  const [globalTimeRange, setGlobalTimeRange] = useState<GlobalTimeRange>("all");
   const [globalCustomDateFrom, setGlobalCustomDateFrom] = useState<Date | undefined>(undefined);
   const [globalCustomDateTo, setGlobalCustomDateTo] = useState<Date | undefined>(undefined);
 

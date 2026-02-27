@@ -48,6 +48,7 @@ interface GlobalInfrastructureFilterBarProps {
 }
 
 const TIME_RANGE_OPTIONS: Array<{ label: string; value: GlobalTimeRange }> = [
+  { label: "All Time",       value: "all"   },
   { label: "Last 24 hours", value: "24h" },
   { label: "Last 7 days", value: "7d" },
   { label: "Last 30 days", value: "30d" },
@@ -104,14 +105,14 @@ const GlobalInfrastructureFilterBar = ({
 
   const hasActiveFilters =
     selectedOrgIds.length > 0 ||
-    timeRange !== "24h" ||
+    timeRange !== "all" ||
     Boolean(customDateFrom) ||
     Boolean(customDateTo) ||
     localSearch.length > 0;
 
   const clearFilters = () => {
     onSelectedOrgIdsChange([]);
-    onTimeRangeChange("24h");
+    onTimeRangeChange("all");
     onCustomDateFromChange(undefined);
     onCustomDateToChange(undefined);
     setLocalSearch("");
