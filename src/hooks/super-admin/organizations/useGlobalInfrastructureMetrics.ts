@@ -327,6 +327,43 @@ const mapVeeamJobFromMatchedEntry = (
   return jobs;
 };
 
+const mapVeeamJobSeverity = (rawStatus: unknown): string => {
+  const status = String(rawStatus ?? "").toLowerCase();
+  if (status.includes("success")) return "success";
+  if (status.includes("warn")) return "warning";
+  if (status.includes("fail") || status.includes("error")) return "failed";
+  return "unknown";
+};
+
+const mapStandaloneVeeamJob = (
+  item: unknown,
+  index: number,
+  orgMapByClientId: Map<number, Organization>,
+  fallbackName: string
+): GlobalVeeamJobItem => {
+  const record = asRecord(item);
+  const clientId = extractClientIdFromBRPayload(record);
+  const org = clientId != null ? orgMapByClientId.get(clientId) : undefined;
+  const severity = mapVeeamJobSeverity(record.status);
+
+  return {
+    id: String(
+      record.id ??
+        record.jobId ??
+        record.jobName ??
+        `${clientId ?? "na"}-${fallbackName}-${index}`
+    ),
+    name: String(record.jobName ?? record.name ?? fallbackName),
+    type: String(record.jobType ?? record.platform ?? ""),
+    severity,
+    status: severity,
+    lastRun: toDateOrUndefined(record.lastRun ?? record.lastRunAt ?? record.updated_at),
+    organizationId: org?.id ?? null,
+    organizationName: org?.name ?? "Unknown Organization",
+    clientId,
+  };
+};
+
 const getTimeCutoff = (
   timeRange: GlobalTimeRange,
   customDateFrom?: Date,
@@ -680,7 +717,7 @@ export const useGlobalInfrastructureMetrics = ({
               Resolved: "Info",
             };
 
-            const uniqueMap = new Map<string, VeeamAlarmItem>();
+            const mappedAlarms: VeeamAlarmItem[] = [];
             for (let index = 0; index < parsed.data.length; index += 1) {
               const item = asRecord(parsed.data[index]);
               const outerKey = Object.keys(item)[0];
@@ -688,18 +725,23 @@ export const useGlobalInfrastructureMetrics = ({
               const inner = asRecord(item[outerKey]);
               if (!Object.keys(inner).length) continue;
 
-              const dedupeKey = String(inner.dedupe_key ?? "");
-              if (!dedupeKey || uniqueMap.has(dedupeKey)) continue;
+              const rawDedupeKey = String(inner.dedupe_key ?? "").trim();
+              const rawAlarmId = String(inner.triggered_alarm_id ?? "").trim();
+              const dedupeKey = rawDedupeKey || rawAlarmId || `alarm-${outerKey}-${index}`;
+              const alarmId = rawAlarmId || `${dedupeKey}-${index}`;
 
               const mappedSeverity = severityMap[outerKey] || "Unknown";
               const description = String(inner.description ?? "");
+              const innerStatus = String(inner.status ?? "").trim();
               const isResolved =
-                outerKey === "Resolved" || description.toLowerCase().includes("back to normal");
+                outerKey === "Resolved" ||
+                innerStatus.toLowerCase() === "resolved" ||
+                description.toLowerCase().includes("back to normal");
 
-              uniqueMap.set(dedupeKey, {
+              mappedAlarms.push({
                 client_id: toNumberOrNull(inner.client_id) ?? 0,
-                alarm_id: String(inner.triggered_alarm_id ?? ""),
-                dedupe_key: dedupeKey,
+                alarm_id: alarmId,
+                dedupe_key: `${dedupeKey}-${index}`,
                 name: String(inner.alarm_name ?? ""),
                 description,
                 severity: mappedSeverity,
@@ -717,7 +759,7 @@ export const useGlobalInfrastructureMetrics = ({
               });
             }
 
-            setRawVeeamAlarmItems(Array.from(uniqueMap.values()));
+            setRawVeeamAlarmItems(mappedAlarms);
           } else {
             setRawVeeamAlarmItems([]);
           }
@@ -954,6 +996,12 @@ export const useGlobalInfrastructureMetrics = ({
       const brAlerts = asRecord(rawVeeamBackupData.alerts);
       const warnings = Array.isArray(brAlerts.warnings) ? brAlerts.warnings : [];
       const critical = Array.isArray(brAlerts.critical) ? brAlerts.critical : [];
+      const jobsWithoutVMs = Array.isArray(rawVeeamBackupData.jobsWithoutVMs)
+        ? rawVeeamBackupData.jobsWithoutVMs
+        : [];
+      const multiVMJobs = Array.isArray(rawVeeamBackupData.multiVMJobs)
+        ? rawVeeamBackupData.multiVMJobs
+        : [];
 
       brData = {
         ...rawVeeamBackupData,
@@ -986,6 +1034,31 @@ export const useGlobalInfrastructureMetrics = ({
           critical: filterBrList(critical, ["timestamp", "lastSeen", "created_at"]),
         },
       };
+
+      const filteredOrphanJobs = filterBrList(jobsWithoutVMs, ["lastRun"]);
+      const filteredMultiVmJobs = filterBrList(multiVMJobs, ["lastRun"]);
+
+      for (let index = 0; index < filteredOrphanJobs.length; index += 1) {
+        jobs.push(
+          mapStandaloneVeeamJob(
+            filteredOrphanJobs[index],
+            index,
+            orgMapByClientId,
+            "Orphan Veeam Job"
+          )
+        );
+      }
+
+      for (let index = 0; index < filteredMultiVmJobs.length; index += 1) {
+        jobs.push(
+          mapStandaloneVeeamJob(
+            filteredMultiVmJobs[index],
+            index,
+            orgMapByClientId,
+            "Multi-VM Veeam Job"
+          )
+        );
+      }
     }
 
     const infraVMs: InfraVM[] = [];
@@ -1064,6 +1137,8 @@ export const useGlobalInfrastructureMetrics = ({
           const sev = String(j.severity).toLowerCase();
           return sev === "failed" || sev === "error";
         }).length,
+        infraVMs: filteredVeeam.infraVMs.length,
+        alarms: filteredVeeam.alarmItems.length,
       },
     }),
     [alerts, hosts, filteredReportsMeta, insights, veeamJobs]

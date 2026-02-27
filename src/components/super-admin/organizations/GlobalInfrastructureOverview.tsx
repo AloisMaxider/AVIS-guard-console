@@ -24,6 +24,7 @@ import {
   type GlobalVeeamDrilldownData,
   type GlobalMetricSummary,
   requestGlobalReportsDetails,
+  type GlobalVeeamJobItem,
 } from "@/hooks/super-admin/organizations/useGlobalInfrastructureMetrics";
 import type {
   AlertItem,
@@ -51,6 +52,7 @@ interface GlobalInfrastructureOverviewProps {
   reports: GlobalReportItem[];
   insights: GlobalInsightItem[];
   veeamDrilldownData: GlobalVeeamDrilldownData;
+  veeamJobs: GlobalVeeamJobItem[];
   alertsBreakdown: CategoryBreakdownRow[];
   hostsBreakdown: CategoryBreakdownRow[];
   reportsBreakdown: CategoryBreakdownRow[];
@@ -120,6 +122,7 @@ const GlobalInfrastructureOverview = ({
   reports,
   insights,
   veeamDrilldownData,
+  veeamJobs,
   alertsBreakdown,
   hostsBreakdown,
   reportsBreakdown,
@@ -373,10 +376,19 @@ const GlobalInfrastructureOverview = ({
           onClick={() => handleCardClick("veeam")}
         >
           <div className="space-y-2">
-            <p className="text-2xl font-bold">{summary.veeam.jobs}</p>
-            <div className="flex gap-4 text-sm text-muted-foreground">
-              <span className="text-success">{summary.veeam.success} success</span>
-              <span className="text-destructive">{summary.veeam.failed} failed</span>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Infra VMs</p>
+                <p className="text-xl font-bold">{veeamDrilldownData.infraVMs.length}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Alarms</p>
+                <p className="text-xl font-bold">{veeamDrilldownData.alarmItems.length}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Jobs</p>
+                <p className="text-xl font-bold">{veeamJobs?.length || "—"}</p>   {/* ← safe access */}
+              </div>
             </div>
           </div>
         </ClickableMetricCard>

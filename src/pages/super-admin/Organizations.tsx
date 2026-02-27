@@ -139,6 +139,7 @@ const Organizations = () => {
     reports: globalReports,
     insights: globalInsights,
     veeamDrilldownData,
+    veeamJobs,
     alertsBreakdown,
     hostsBreakdown,
     reportsBreakdown,
@@ -262,6 +263,7 @@ const Organizations = () => {
               reports={globalReports}
               insights={globalInsights}
               veeamDrilldownData={veeamDrilldownData}
+              veeamJobs={veeamJobs}
               alertsBreakdown={alertsBreakdown}
               hostsBreakdown={hostsBreakdown}
               reportsBreakdown={reportsBreakdown}
