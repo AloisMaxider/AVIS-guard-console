@@ -464,10 +464,6 @@ const GlobalInfrastructureOverview = ({
                   loading={loading}
                   error={null}
                   onRefresh={onRefresh}
-                  onItemClick={(item) => {
-                    setSelectedItem(item);
-                    setDrawerOpen(true);
-                  }}
                 />
               )}
 
